@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "generateZodSchemas": true,
+        "zodSchemaPrefix": "z",
+        "strictTypeChecking": true,
+        "validateClassMethods": true,
+        "useGlobalCache": true,
+        "incrementalCompilation": true,
+        "parallelProcessing": true
+      }
+    ]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+} 

@@ -1,0 +1,45 @@
+{
+  "name": "type-compiler",
+  "version": "1.0.0",
+  "description": "A TypeScript compiler plugin for enhanced type checking and analysis",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.plugin.json && echo 'Built modular version!'",
+    "bootstrap": "node bootstrap.js",
+    "postinstall": "ts-patch install",
+    "test": "jest",
+    "lint": "eslint src --ext .ts",
+    "clean": "rimraf dist",
+    "prepare": "npm run clean && npm run bootstrap"
+  },
+  "keywords": [
+    "typescript",
+    "compiler",
+    "type-checking",
+    "ast",
+    "typescript-plugin",
+    "tsc-plugin",
+    "zod",
+    "runtime-validation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "typescript": ">=4.0.0",
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.24",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.5",
+    "ts-jest": "^29.1.2",
+    "ts-patch": "^3.3.0",
+    "typescript": "^5.3.3",
+    "zod": "^3.22.4"
+  }
+}
