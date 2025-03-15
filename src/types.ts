@@ -140,8 +140,12 @@ export interface TypeCompilerOptions {
    * 
    * The key is the field name to match, and the value is the Zod validator expression to use.
    * For example: { "email": "z.string().email()" } will use z.string().email() for all fields named "email"
+   * 
+   * You can also use regex patterns by specifying an object with pattern and validator properties:
+   * { "^.*Email$": { pattern: true, validator: "z.string().email()" } }
+   * This will apply z.string().email() to all fields whose names end with "Email"
    */
-  specialFieldValidators?: Record<string, string>;
+  specialFieldValidators?: Record<string, string | { pattern: boolean; validator: string }>;
 }
 
 /**

@@ -609,7 +609,9 @@ This approach is particularly effective when:
 
 ### Special Field Validators
 
-The special field validators feature allows you to define custom Zod validators for specific field names across your codebase, ensuring consistent validation rules for common field types like emails, dates, and more.
+The Type Compiler allows you to define custom Zod validators for specific field names, ensuring consistent validation rules across your codebase.
+
+You can configure special field validators in your `tsconfig.json`:
 
 ```json
 {
@@ -617,12 +619,11 @@ The special field validators feature allows you to define custom Zod validators 
     "plugins": [
       {
         "name": "type-compiler",
-        "generateZodSchemas": true,
         "specialFieldValidators": {
           "email": "z.string().email()",
-          "birthDate": "z.string().pipe(z.coerce.date())",
+          "birthDate": "z.date()",
           "url": "z.string().url()",
-          "phoneNumber": "z.string().regex(/^\\+?[1-9]\\d{1,14}$/)"
+          "phoneNumber": "z.string().regex(/^\\+?[0-9]{10,15}$/)"
         }
       }
     ]
@@ -630,32 +631,45 @@ The special field validators feature allows you to define custom Zod validators 
 }
 ```
 
-When the plugin generates Zod schemas for your TypeScript types, it checks each property name against the `specialFieldValidators` configuration. If a match is found, it uses your custom validator instead of the default type-based validator.
+When generating Zod schemas, these special validators will be applied to fields with matching names, regardless of which interface or type they belong to.
 
-#### Example
+#### Pattern-Based Field Matching
 
-Given this TypeScript interface:
+You can also use regex patterns to match field names, allowing for more flexible validation rules. To use pattern matching, specify an object with `pattern: true` and your validator:
 
-```typescript
-interface User {
-  id: number;
-  email: string;  // Will use z.string().email() validator
-  website: string; // Will use z.string().url() validator
-  phoneNumber: string; // Will use the phone number regex validator
-  name: string;   // Uses standard z.string() validator
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "specialFieldValidators": {
+          "email": "z.string().email()",
+          "^.*Email$": {
+            "pattern": true,
+            "validator": "z.string().email()"
+          },
+          "^id": {
+            "pattern": true,
+            "validator": "z.string().uuid()"
+          },
+          "(^latitude$|Latitude$)": {
+            "pattern": true,
+            "validator": "z.number().min(-90).max(90)"
+          }
+        }
+      }
+    ]
+  }
 }
 ```
 
-The generated schema would be:
+In this example:
+- Fields named exactly `email` use the email validator
+- Fields ending with `Email` (like `userEmail`, `contactEmail`) use the email validator
+- Fields starting with `id` (like `id`, `idNumber`) use the UUID validator
+- Fields named `latitude` or ending with `Latitude` use the latitude range validator
 
-```typescript
-export const zUser = z.object({
-  id: z.number(),
-  email: z.string().email(),  // Special validator applied
-  website: z.string().url(),  // Special validator applied
-  phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/),  // Special validator applied
-  name: z.string()
-});
-```
+Regular expressions follow JavaScript syntax. Exact matches are always prioritized over pattern matches.
 
-This feature helps ensure consistent validation across your entire application and reduces the need for manual validator specification. For more details, see [Special Field Validators documentation](docs/special-field-validators.md). 
+This feature makes it easy to apply consistent validation across your codebase without manually specifying every field validator. 

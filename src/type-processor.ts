@@ -19,11 +19,43 @@ function applySpecialFieldValidation(
     return defaultValidator;
   }
   
-  // Check if this property name has a special validator defined
+  // First, check for exact name matches
   if (propertyName in options.specialFieldValidators) {
     const specialValidator = options.specialFieldValidators[propertyName];
-    logger.debug(`Applying special validator for property "${propertyName}": ${specialValidator}`);
-    return specialValidator;
+    
+    // Handle both string validator and pattern object
+    if (typeof specialValidator === 'string') {
+      logger.debug(`Applying special validator for property "${propertyName}": ${specialValidator}`);
+      return specialValidator;
+    } else if (specialValidator.pattern === false) {
+      // This is an object format but without pattern matching
+      logger.debug(`Applying special validator for property "${propertyName}": ${specialValidator.validator}`);
+      return specialValidator.validator;
+    }
+  }
+  
+  // Then, check for pattern matches
+  for (const [pattern, validatorData] of Object.entries(options.specialFieldValidators)) {
+    // Skip if this is a direct match (already handled) or not a pattern
+    if (pattern === propertyName || typeof validatorData === 'string' || !validatorData.pattern) {
+      continue;
+    }
+    
+    try {
+      // Create a RegExp object from the pattern
+      const regex = new RegExp(pattern);
+      
+      // Test if the property name matches the pattern
+      if (regex.test(propertyName)) {
+        logger.debug(`Applying pattern validator "${pattern}" for property "${propertyName}": ${validatorData.validator}`);
+        return validatorData.validator;
+      }
+    } catch (error) {
+      // Log warning if regex compilation fails
+      logger.warn(`Invalid regex pattern in specialFieldValidators: "${pattern}"`, {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
   }
   
   // No special validator found, return the default

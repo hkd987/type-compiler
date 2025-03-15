@@ -120,4 +120,67 @@ export type GeoPoint = {
   latitude: number;
   longitude: number;
   elevation?: number;
+}
+
+/**
+ * The following types demonstrate pattern-based matching features
+ * ===============================================================
+ */
+
+/**
+ * Multiple email fields with similar naming patterns
+ */
+export interface EmailSubscription {
+  id: string;
+  primaryEmail: string;         // Will match ^.*Email$ pattern
+  backupEmail: string;          // Will match ^.*Email$ pattern
+  marketingEmail: string;       // Will match ^.*Email$ pattern
+  unsubscribeReason: string;    // No special validation
+  lastSent: Date;
+}
+
+/**
+ * Fields with 'id' prefix that will be validated as UUIDs
+ */
+export interface EntityRelationship {
+  idParent: string;             // Will match ^id[A-Z] pattern
+  idChild: string;              // Will match ^id[A-Z] pattern
+  idRelationType: string;       // Will match ^id[A-Z] pattern
+  name: string;                 // No special validation
+  description: string;          // No special validation
+}
+
+/**
+ * Pricing information with price fields
+ */
+export interface ProductPricing {
+  productId: string;            // Not matching the pattern (lowercase d)
+  priceBase: number;            // Will match ^price[A-Z] pattern
+  priceWithTax: number;         // Will match ^price[A-Z] pattern
+  priceDiscount: number;        // Will match ^price[A-Z] pattern
+  tax: number;                  // No special validation
+  currency: string;             // No special validation
+}
+
+/**
+ * Media item with image URLs
+ */
+export interface MediaItem {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;             // Not matching the pattern (lowercase all)
+  imageThumbnail: string;       // Will match (^img|^image)[A-Z] pattern
+  imageFullsize: string;        // Will match (^img|^image)[A-Z] pattern
+  imgPreview: string;           // Will match (^img|^image)[A-Z] pattern
+}
+
+/**
+ * Custom location format with different naming convention
+ */
+export interface CustomMapLocation {
+  name: string;
+  latPoint: number;             // Will match ^(lat|Long)[A-Z] pattern
+  LongPosition: number;         // Will match ^(lat|Long)[A-Z] pattern
+  altitude: number;             // No special validation
 } 

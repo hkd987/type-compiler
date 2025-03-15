@@ -188,6 +188,110 @@ Special validators work with optional fields too. The optionality is preserved:
 - Field validators don't consider the actual TypeScript type of the field.
 - Circular references in validators won't work.
 
+## Pattern-Based Field Matching
+
+The type-compiler now supports regex pattern matching for field names, allowing you to apply validators more flexibly. This is especially useful when you have naming conventions or want to validate fields with similar purposes.
+
+### Configuration
+
+To use pattern-based field matching, specify an object with `pattern: true` and your validator:
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "specialFieldValidators": {
+          "email": "z.string().email()",
+          "^.*Email$": {
+            "pattern": true,
+            "validator": "z.string().email()"
+          },
+          "^id": {
+            "pattern": true,
+            "validator": "z.string().uuid()"
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+### How Pattern Matching Works
+
+1. For each field, the plugin first checks for exact matches in your `specialFieldValidators` configuration.
+2. If no exact match is found, it checks all pattern-based validators to find a match.
+3. If multiple patterns match, the first one defined in the configuration is used.
+4. Exact matches always take precedence over pattern matches.
+
+### Common Pattern Examples
+
+#### Fields Ending With a Specific Suffix
+
+Match all fields ending with "Email":
+
+```json
+"^.*Email$": {
+  "pattern": true,
+  "validator": "z.string().email()"
+}
+```
+
+This will match fields like `userEmail`, `contactEmail`, and `workEmail`, but not `email` or `emailAddress`.
+
+#### Fields Starting With a Specific Prefix
+
+Match all fields starting with "id":
+
+```json
+"^id": {
+  "pattern": true,
+  "validator": "z.string().uuid()"
+}
+```
+
+This will match fields like `id`, `idNumber`, and `idUser`, but not `userId` or `entityId`.
+
+#### Fields Containing a Specific Word
+
+Match all fields containing "Price":
+
+```json
+"Price": {
+  "pattern": true,
+  "validator": "z.number().min(0)"
+}
+```
+
+This will match fields like `price`, `totalPrice`, and `priceWithTax`.
+
+#### Complex Patterns
+
+You can use more complex regex patterns for advanced matching:
+
+```json
+"(^lat$|^latitude$|Latitude$)": {
+  "pattern": true,
+  "validator": "z.number().min(-90).max(90)"
+}
+```
+
+This will match fields named `lat`, `latitude`, or ending with `Latitude` like `userLatitude`.
+
+### Best Practices for Pattern Matching
+
+1. **Start with Specific Patterns**: Begin with more specific patterns and move to more general ones to avoid unexpected matches.
+
+2. **Test Your Patterns**: Verify that your patterns match exactly the fields you expect.
+
+3. **Use Anchors**: Use `^` and `$` anchors to ensure you're matching complete field names, not just substrings.
+
+4. **Document Patterns**: Comment your regex patterns to explain what they're matching.
+
+5. **Error Handling**: Invalid regex patterns will be logged as warnings and ignored.
+
 ## Example Project
 
 Check out the `examples/special-validators` directory for a complete example project demonstrating how to use special field validators effectively. 
