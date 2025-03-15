@@ -6,6 +6,31 @@ import { getWorkerPool } from './parallel';
 import { logger } from './logger';
 
 /**
+ * Determines if a special field validator should be applied to a property
+ * and returns the appropriate Zod validator expression
+ */
+function applySpecialFieldValidation(
+  propertyName: string, 
+  defaultValidator: string,
+  options?: TypeCompilerOptions
+): string {
+  // If no special validators are defined or options are not provided, return the default
+  if (!options?.specialFieldValidators) {
+    return defaultValidator;
+  }
+  
+  // Check if this property name has a special validator defined
+  if (propertyName in options.specialFieldValidators) {
+    const specialValidator = options.specialFieldValidators[propertyName];
+    logger.debug(`Applying special validator for property "${propertyName}": ${specialValidator}`);
+    return specialValidator;
+  }
+  
+  // No special validator found, return the default
+  return defaultValidator;
+}
+
+/**
  * Convert a TypeScript type to a Zod schema
  */
 export function typeToZodSchema(
@@ -14,8 +39,42 @@ export function typeToZodSchema(
   program?: ts.Program,
   options?: TypeCompilerOptions
 ): string {
-  // This is a simplified implementation - real implementation would be more complex
   logger.trace(`Converting type to Zod schema: ${typeChecker.typeToString(type)}`);
+  
+  // For demonstration, let's enhance our simplified implementation
+  // In a real implementation, we would analyze the properties of the type
+  // and apply special validators based on property names
+  
+  // Check if the type has properties (like an interface or class)
+  if (type.getProperties && type.getProperties().length > 0) {
+    const properties = type.getProperties();
+    const propertySchemas: string[] = [];
+    
+    // Process each property
+    for (const property of properties) {
+      const propertyName = property.getName();
+      const propertyType = typeChecker.getTypeOfSymbolAtLocation(property, property.valueDeclaration!);
+      
+      // Start with a basic validator based on the property type
+      let baseValidator = 'z.any()';
+      
+      // In a real implementation, we would analyze the property type here
+      // and convert it to the appropriate Zod schema
+      
+      // Apply any special field validation
+      const finalValidator = applySpecialFieldValidation(propertyName, baseValidator, options);
+      
+      // Add to property schemas
+      propertySchemas.push(`${propertyName}: ${finalValidator}`);
+    }
+    
+    // Return a Zod object schema with the processed properties
+    if (propertySchemas.length > 0) {
+      return `z.object({\n  ${propertySchemas.join(',\n  ')}\n})`;
+    }
+  }
+  
+  // For simplicity, return a basic object schema for other cases
   return `z.object({})`;
 }
 

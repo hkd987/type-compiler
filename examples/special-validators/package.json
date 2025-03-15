@@ -1,0 +1,26 @@
+{
+  "name": "special-validators-example",
+  "version": "1.0.0",
+  "description": "Example demonstrating the specialFieldValidators feature of type-compiler",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "typescript",
+    "zod",
+    "validation",
+    "type-compiler"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "type-compiler": "file:../../",
+    "typescript": "^5.3.3"
+  }
+} 

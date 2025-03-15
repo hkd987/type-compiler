@@ -80,7 +80,7 @@ export function createZodTransformer(program: ts.Program, options: TypeCompilerO
           }
           
           // Check if we should use worker pool
-          const zodSchema = typeToZodSchema(type, typeChecker);
+          const zodSchema = typeToZodSchema(type, typeChecker, program, options);
           
           if (!zodSchema) {
             logger.warn(`Could not generate schema for ${exportedName}`);

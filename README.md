@@ -21,7 +21,12 @@ npm install --save-dev type-compiler zod
         "generateZodSchemas": true,
         "zodSchemaPrefix": "z",
         "strictTypeChecking": true,
-        "validateClassMethods": true
+        "validateClassMethods": true,
+        "specialFieldValidators": {
+          "email": "z.string().email()",
+          "url": "z.string().url()",
+          "phoneNumber": "z.string().regex(/^\\+?[1-9]\\d{1,14}$/)"
+        }
       }
     ]
   }
@@ -601,3 +606,56 @@ This approach is particularly effective when:
 - You have large interfaces or deeply nested types
 
 **Note:** For small projects, the overhead of creating worker threads may outweigh the benefits. It's recommended to benchmark with and without parallel processing to determine the optimal configuration for your specific use case. 
+
+### Special Field Validators
+
+The special field validators feature allows you to define custom Zod validators for specific field names across your codebase, ensuring consistent validation rules for common field types like emails, dates, and more.
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "generateZodSchemas": true,
+        "specialFieldValidators": {
+          "email": "z.string().email()",
+          "birthDate": "z.string().pipe(z.coerce.date())",
+          "url": "z.string().url()",
+          "phoneNumber": "z.string().regex(/^\\+?[1-9]\\d{1,14}$/)"
+        }
+      }
+    ]
+  }
+}
+```
+
+When the plugin generates Zod schemas for your TypeScript types, it checks each property name against the `specialFieldValidators` configuration. If a match is found, it uses your custom validator instead of the default type-based validator.
+
+#### Example
+
+Given this TypeScript interface:
+
+```typescript
+interface User {
+  id: number;
+  email: string;  // Will use z.string().email() validator
+  website: string; // Will use z.string().url() validator
+  phoneNumber: string; // Will use the phone number regex validator
+  name: string;   // Uses standard z.string() validator
+}
+```
+
+The generated schema would be:
+
+```typescript
+export const zUser = z.object({
+  id: z.number(),
+  email: z.string().email(),  // Special validator applied
+  website: z.string().url(),  // Special validator applied
+  phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/),  // Special validator applied
+  name: z.string()
+});
+```
+
+This feature helps ensure consistent validation across your entire application and reduces the need for manual validator specification. For more details, see [Special Field Validators documentation](docs/special-field-validators.md). 

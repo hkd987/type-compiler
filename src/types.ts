@@ -134,6 +134,14 @@ export interface TypeCompilerOptions {
    * When true, disables color output in logs
    */
   noColor?: boolean;
+  
+  /**
+   * Custom Zod validators for specific field names
+   * 
+   * The key is the field name to match, and the value is the Zod validator expression to use.
+   * For example: { "email": "z.string().email()" } will use z.string().email() for all fields named "email"
+   */
+  specialFieldValidators?: Record<string, string>;
 }
 
 /**
@@ -159,7 +167,8 @@ export const defaultCompilerOptions: TypeCompilerOptions = {
   verbose: false,
   debug: false,
   silent: false,
-  noColor: false
+  noColor: false,
+  specialFieldValidators: {}
 };
 
 /**
