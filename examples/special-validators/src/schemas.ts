@@ -106,4 +106,118 @@ export const zGeoPoint = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   elevation: z.number().optional()
+});
+
+// Product dimensions schema with dimension validators
+export const zProductDimensions = z.object({
+  width: z.number().positive(),
+  height: z.number().positive(),
+  depth: z.number().positive(),
+  weight: z.number(),
+  sizeCategory: z.string()
+});
+
+// E-commerce product schema with various field validators
+export const zEcommerceProduct = z.object({
+  productId: z.string().min(1),
+  sku: z.string(),
+  name: z.string(),
+  description: z.string(),
+  basePrice: z.number().min(0).or(z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number)),
+  discountAmount: z.number().min(0).or(z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number)),
+  totalPrice: z.number().min(0).or(z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number)),
+  taxRate: z.number().min(0).max(100),
+  stockCount: z.number().int().min(0),
+  dimensions: zProductDimensions,
+  availableColors: z.array(z.string()),
+  primaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i).or(z.string().regex(/^rgb\(\d{1,3},\s*\d{1,3},\s*\d{1,3}\)$/)),
+  tags: z.array(z.any()),
+  categories: z.array(z.any()),
+  isAvailable: z.boolean(),
+  hasVariants: z.boolean(),
+  productStatus: z.enum(['active', 'inactive', 'pending', 'completed', 'failed', 'cancelled']).or(z.string()),
+  createdAt: z.date().or(z.string().pipe(z.coerce.date())),
+  updatedAt: z.date().or(z.string().pipe(z.coerce.date()))
+});
+
+// User activity schema with timestamp, count, and boolean validators
+export const zUserActivity = z.object({
+  activityId: z.string().min(1),
+  userId: z.string().min(1),
+  sessionId: z.string().min(1),
+  activityType: z.string(),
+  startTime: z.date().or(z.string().pipe(z.coerce.date())),
+  endTime: z.date().or(z.string().pipe(z.coerce.date())),
+  loginDate: z.date().or(z.string().pipe(z.coerce.date())),
+  durationSeconds: z.number(),
+  completionRate: z.number().min(0).max(100),
+  clickCount: z.number().int().min(0),
+  pageViewCount: z.number().int().min(0),
+  isCompleted: z.boolean(),
+  canResume: z.boolean(),
+  activityStatus: z.enum(['active', 'inactive', 'pending', 'completed', 'failed', 'cancelled']).or(z.string())
+});
+
+// Financial transaction schema with monetary values
+export const zTransaction = z.object({
+  transactionId: z.string().min(1),
+  referenceCode: z.string().min(1),
+  amount: z.number().min(0).or(z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number)),
+  fee: z.number().min(0).or(z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number)),
+  totalAmount: z.number().min(0).or(z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number)),
+  interestRate: z.number().min(0).max(100),
+  exchangeRate: z.number().min(0).max(100),
+  transactionDate: z.date().or(z.string().pipe(z.coerce.date())),
+  processedAt: z.date().or(z.string().pipe(z.coerce.date())),
+  shouldNotify: z.boolean(),
+  transactionStatus: z.enum(['active', 'inactive', 'pending', 'completed', 'failed', 'cancelled']).or(z.string())
+});
+
+// UI Theme schema with color validators
+export const zTheme = z.object({
+  themeId: z.string().min(1),
+  name: z.string(),
+  primaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i).or(z.string().regex(/^rgb\(\d{1,3},\s*\d{1,3},\s*\d{1,3}\)$/)),
+  secondaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i).or(z.string().regex(/^rgb\(\d{1,3},\s*\d{1,3},\s*\d{1,3}\)$/)),
+  backgroundColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i).or(z.string().regex(/^rgb\(\d{1,3},\s*\d{1,3},\s*\d{1,3}\)$/)),
+  textColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i).or(z.string().regex(/^rgb\(\d{1,3},\s*\d{1,3},\s*\d{1,3}\)$/)),
+  accentColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i).or(z.string().regex(/^rgb\(\d{1,3},\s*\d{1,3},\s*\d{1,3}\)$/)),
+  isDefault: z.boolean(),
+  createdAt: z.date().or(z.string().pipe(z.coerce.date()))
+});
+
+// Analytics data schema with count and rate validators
+export const zAnalyticsData = z.object({
+  metricId: z.string().min(1),
+  pageId: z.string().min(1),
+  visitorCount: z.number().int().min(0),
+  conversionCount: z.number().int().min(0),
+  bounceCount: z.number().int().min(0),
+  conversionRate: z.number().min(0).max(100),
+  bounceRate: z.number().min(0).max(100),
+  engagementRatio: z.number().min(0).max(100),
+  recordedAt: z.date().or(z.string().pipe(z.coerce.date())),
+  periodStartDate: z.date().or(z.string().pipe(z.coerce.date())),
+  periodEndDate: z.date().or(z.string().pipe(z.coerce.date())),
+  isRealTime: z.boolean(),
+  dataStatus: z.enum(['active', 'inactive', 'pending', 'completed', 'failed', 'cancelled']).or(z.string())
+});
+
+// Shipping order schema with dimension, status, and boolean validators
+export const zShippingOrder = z.object({
+  orderId: z.string().min(1),
+  trackingCode: z.string().min(1),
+  shippingStatus: z.enum(['active', 'inactive', 'pending', 'completed', 'failed', 'cancelled']).or(z.string()),
+  paymentStatus: z.enum(['active', 'inactive', 'pending', 'completed', 'failed', 'cancelled']).or(z.string()),
+  orderStatus: z.enum(['active', 'inactive', 'pending', 'completed', 'failed', 'cancelled']).or(z.string()),
+  shippingCost: z.number().min(0).or(z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number)),
+  packageWidth: z.number().positive(),
+  packageHeight: z.number().positive(),
+  packageLength: z.number().positive(),
+  orderDate: z.date().or(z.string().pipe(z.coerce.date())),
+  shipByDate: z.date().or(z.string().pipe(z.coerce.date())),
+  deliveryTime: z.date().or(z.string().pipe(z.coerce.date())),
+  isExpress: z.boolean(),
+  hasInsurance: z.boolean(),
+  items: z.array(z.any())
 }); 

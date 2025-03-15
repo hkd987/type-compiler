@@ -183,4 +183,137 @@ export interface CustomMapLocation {
   latPoint: number;             // Will match ^(lat|Long)[A-Z] pattern
   LongPosition: number;         // Will match ^(lat|Long)[A-Z] pattern
   altitude: number;             // No special validation
+}
+
+/**
+ * The following types demonstrate the new pattern-based validators
+ * ================================================================
+ */
+
+/**
+ * E-commerce product with various fields that will be matched by the validators
+ */
+export interface EcommerceProduct {
+  productId: string;                  // Will match '.*(?:Id|Key|Code)$'
+  sku: string;
+  name: string;
+  description: string;
+  basePrice: number;                  // Will match '(?:amount|cost|price|fee|total)(?:$|[A-Z])'
+  discountAmount: number;             // Will match '(?:amount|cost|price|fee|total)(?:$|[A-Z])'
+  totalPrice: number;                 // Will match '(?:amount|cost|price|fee|total)(?:$|[A-Z])'
+  taxRate: number;                    // Will match '.*(?:Percent|Rate|Ratio)$'
+  stockCount: number;                 // Will match '.*Count$'
+  dimensions: ProductDimensions;
+  availableColors: string[];          // Not directly matched (array of colors)
+  primaryColor: string;               // Will match '.*[Cc]olor$'
+  tags: string[];                     // Will match '^(?:tags|categories|items|products|users)$'
+  categories: string[];               // Will match '^(?:tags|categories|items|products|users)$'
+  isAvailable: boolean;               // Will match '^is[A-Z]|^has[A-Z]|^can[A-Z]|^should[A-Z]'
+  hasVariants: boolean;               // Will match '^is[A-Z]|^has[A-Z]|^can[A-Z]|^should[A-Z]'
+  productStatus: string;              // Will match '.*Status$'
+  createdAt: Date;                    // Will match '^.*(?:At|Date|Time)$'
+  updatedAt: Date;                    // Will match '^.*(?:At|Date|Time)$'
+}
+
+/**
+ * Product dimensions with fields that will match the dimension validators
+ */
+export interface ProductDimensions {
+  width: number;                      // Will match '(?:width|height|depth|length|radius|size)(?:$|[A-Z])'
+  height: number;                     // Will match '(?:width|height|depth|length|radius|size)(?:$|[A-Z])'
+  depth: number;                      // Will match '(?:width|height|depth|length|radius|size)(?:$|[A-Z])'
+  weight: number;                     // Not matched by dimension pattern
+  sizeCategory: string;               // Not matched (doesn't end with 'size' or start with 'size')
+}
+
+/**
+ * User activity tracking with timestamp fields
+ */
+export interface UserActivity {
+  activityId: string;                 // Will match '.*(?:Id|Key|Code)$'
+  userId: string;                     // Will match '.*(?:Id|Key|Code)$'
+  sessionId: string;                  // Will match '.*(?:Id|Key|Code)$'
+  activityType: string;
+  startTime: Date;                    // Will match '^.*(?:At|Date|Time)$'
+  endTime: Date;                      // Will match '^.*(?:At|Date|Time)$'
+  loginDate: string;                  // Will match '^.*(?:At|Date|Time)$' (will be coerced to Date)
+  durationSeconds: number;
+  completionRate: number;             // Will match '.*(?:Percent|Rate|Ratio)$'
+  clickCount: number;                 // Will match '.*Count$'
+  pageViewCount: number;              // Will match '.*Count$'
+  isCompleted: boolean;               // Will match '^is[A-Z]|^has[A-Z]|^can[A-Z]|^should[A-Z]'
+  canResume: boolean;                 // Will match '^is[A-Z]|^has[A-Z]|^can[A-Z]|^should[A-Z]'
+  activityStatus: string;             // Will match '.*Status$'
+}
+
+/**
+ * Financial transaction with monetary values and status
+ */
+export interface Transaction {
+  transactionId: string;              // Will match '.*(?:Id|Key|Code)$'
+  referenceCode: string;              // Will match '.*(?:Id|Key|Code)$'
+  amount: number;                     // Will match '(?:amount|cost|price|fee|total)(?:$|[A-Z])'
+  fee: number;                        // Will match '(?:amount|cost|price|fee|total)(?:$|[A-Z])'
+  totalAmount: number;                // Will match '(?:amount|cost|price|fee|total)(?:$|[A-Z])'
+  interestRate: number;               // Will match '.*(?:Percent|Rate|Ratio)$'
+  exchangeRate: number;               // Will match '.*(?:Percent|Rate|Ratio)$'
+  transactionDate: Date;              // Will match '^.*(?:At|Date|Time)$'
+  processedAt: Date;                  // Will match '^.*(?:At|Date|Time)$'
+  shouldNotify: boolean;              // Will match '^is[A-Z]|^has[A-Z]|^can[A-Z]|^should[A-Z]'
+  transactionStatus: string;          // Will match '.*Status$'
+}
+
+/**
+ * UI Theme with color properties
+ */
+export interface Theme {
+  themeId: string;                    // Will match '.*(?:Id|Key|Code)$'
+  name: string;
+  primaryColor: string;               // Will match '.*[Cc]olor$'
+  secondaryColor: string;             // Will match '.*[Cc]olor$'
+  backgroundColor: string;            // Will match '.*[Cc]olor$'
+  textColor: string;                  // Will match '.*[Cc]olor$'
+  accentColor: string;                // Will match '.*[Cc]olor$'
+  isDefault: boolean;                 // Will match '^is[A-Z]|^has[A-Z]|^can[A-Z]|^should[A-Z]'
+  createdAt: Date;                    // Will match '^.*(?:At|Date|Time)$'
+}
+
+/**
+ * Analytics data with counts and rates
+ */
+export interface AnalyticsData {
+  metricId: string;                   // Will match '.*(?:Id|Key|Code)$'
+  pageId: string;                     // Will match '.*(?:Id|Key|Code)$'
+  visitorCount: number;               // Will match '.*Count$'
+  conversionCount: number;            // Will match '.*Count$'
+  bounceCount: number;                // Will match '.*Count$'
+  conversionRate: number;             // Will match '.*(?:Percent|Rate|Ratio)$'
+  bounceRate: number;                 // Will match '.*(?:Percent|Rate|Ratio)$'
+  engagementRatio: number;            // Will match '.*(?:Percent|Rate|Ratio)$'
+  recordedAt: Date;                   // Will match '^.*(?:At|Date|Time)$'
+  periodStartDate: string;            // Will match '^.*(?:At|Date|Time)$' (will be coerced to Date)
+  periodEndDate: string;              // Will match '^.*(?:At|Date|Time)$' (will be coerced to Date)
+  isRealTime: boolean;                // Will match '^is[A-Z]|^has[A-Z]|^can[A-Z]|^should[A-Z]'
+  dataStatus: string;                 // Will match '.*Status$'
+}
+
+/**
+ * Ship an order - demonstrates status validation
+ */
+export interface ShippingOrder {
+  orderId: string;                    // Will match '.*(?:Id|Key|Code)$'
+  trackingCode: string;               // Will match '.*(?:Id|Key|Code)$'
+  shippingStatus: string;             // Will match '.*Status$' (should be one of enum values)
+  paymentStatus: string;              // Will match '.*Status$' (should be one of enum values)
+  orderStatus: string;                // Will match '.*Status$' (should be one of enum values)
+  shippingCost: number;               // Will match '(?:amount|cost|price|fee|total)(?:$|[A-Z])'
+  packageWidth: number;               // Will match '(?:width|height|depth|length|radius|size)(?:$|[A-Z])'
+  packageHeight: number;              // Will match '(?:width|height|depth|length|radius|size)(?:$|[A-Z])'
+  packageLength: number;              // Will match '(?:width|height|depth|length|radius|size)(?:$|[A-Z])'
+  orderDate: Date;                    // Will match '^.*(?:At|Date|Time)$'
+  shipByDate: Date;                   // Will match '^.*(?:At|Date|Time)$'
+  deliveryTime: string;               // Will match '^.*(?:At|Date|Time)$' (will be coerced to Date)
+  isExpress: boolean;                 // Will match '^is[A-Z]|^has[A-Z]|^can[A-Z]|^should[A-Z]'
+  hasInsurance: boolean;              // Will match '^is[A-Z]|^has[A-Z]|^can[A-Z]|^should[A-Z]'
+  items: string[];                    // Will match '^(?:tags|categories|items|products|users)$'
 } 

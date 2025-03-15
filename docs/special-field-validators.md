@@ -226,59 +226,211 @@ To use pattern-based field matching, specify an object with `pattern: true` and 
 3. If multiple patterns match, the first one defined in the configuration is used.
 4. Exact matches always take precedence over pattern matches.
 
-### Common Pattern Examples
+### Real-World Pattern Examples
 
-#### Fields Ending With a Specific Suffix
+Here's a comprehensive list of useful pattern-based validators for common scenarios:
 
-Match all fields ending with "Email":
+#### Email Addresses and Contact Information
 
 ```json
 "^.*Email$": {
   "pattern": true,
   "validator": "z.string().email()"
+},
+"^email[A-Z]": {
+  "pattern": true,
+  "validator": "z.string().email()"
+},
+"^contact[A-Z]": {
+  "pattern": true,
+  "validator": "z.string()"
 }
 ```
 
-This will match fields like `userEmail`, `contactEmail`, and `workEmail`, but not `email` or `emailAddress`.
-
-#### Fields Starting With a Specific Prefix
-
-Match all fields starting with "id":
+#### Identifiers and References
 
 ```json
-"^id": {
+".*(?:Id|Key|Code)$": {
+  "pattern": true,
+  "validator": "z.string().min(1)"
+},
+"^uuid$|^guid$": {
   "pattern": true,
   "validator": "z.string().uuid()"
 }
 ```
 
-This will match fields like `id`, `idNumber`, and `idUser`, but not `userId` or `entityId`.
-
-#### Fields Containing a Specific Word
-
-Match all fields containing "Price":
+#### Timestamps and Dates
 
 ```json
-"Price": {
+"^.*(?:At|Date|Time)$": {
   "pattern": true,
-  "validator": "z.number().min(0)"
+  "validator": "z.date().or(z.string().pipe(z.coerce.date()))"
+},
+"^created|^updated|^modified": {
+  "pattern": true,
+  "validator": "z.date()"
 }
 ```
 
-This will match fields like `price`, `totalPrice`, and `priceWithTax`.
-
-#### Complex Patterns
-
-You can use more complex regex patterns for advanced matching:
+#### Monetary Values
 
 ```json
-"(^lat$|^latitude$|Latitude$)": {
+"(?:amount|cost|price|fee|total)(?:$|[A-Z])": {
   "pattern": true,
-  "validator": "z.number().min(-90).max(90)"
+  "validator": "z.number().min(0).or(z.string().regex(/^\\d+(\\.\\d{1,2})?$/).transform(Number))"
+},
+"^currency$|^.*Currency$": {
+  "pattern": true,
+  "validator": "z.string().length(3).regex(/^[A-Z]{3}$/)"
 }
 ```
 
-This will match fields named `lat`, `latitude`, or ending with `Latitude` like `userLatitude`.
+#### Status Fields and Enums
+
+```json
+".*Status$": {
+  "pattern": true,
+  "validator": "z.enum(['active', 'inactive', 'pending', 'completed', 'failed', 'cancelled']).or(z.string())"
+},
+".*Type$": {
+  "pattern": true,
+  "validator": "z.string()"
+}
+```
+
+#### Percentages and Rates
+
+```json
+".*(?:Percent|Rate|Ratio)$": {
+  "pattern": true,
+  "validator": "z.number().min(0).max(100)"
+},
+".*Decimal$": {
+  "pattern": true,
+  "validator": "z.number().min(0).max(1)"
+}
+```
+
+#### Counting Fields
+
+```json
+".*Count$": {
+  "pattern": true,
+  "validator": "z.number().int().min(0)"
+},
+".*Limit$": {
+  "pattern": true,
+  "validator": "z.number().int().positive()"
+}
+```
+
+#### Dimension Measurements
+
+```json
+"(?:width|height|depth|length|radius|size)(?:$|[A-Z])": {
+  "pattern": true,
+  "validator": "z.number().positive()"
+},
+".*Size$": {
+  "pattern": true,
+  "validator": "z.number().positive()"
+}
+```
+
+#### Boolean Flags
+
+```json
+"^is[A-Z]|^has[A-Z]|^can[A-Z]|^should[A-Z]": {
+  "pattern": true,
+  "validator": "z.boolean()"
+},
+".*Enabled$|.*Active$|.*Visible$": {
+  "pattern": true, 
+  "validator": "z.boolean()"
+}
+```
+
+#### Collections and Arrays
+
+```json
+"^(?:tags|categories|items|products|users)$": {
+  "pattern": true,
+  "validator": "z.array(z.any())"
+},
+".*List$|.*Array$|.*Collection$": {
+  "pattern": true,
+  "validator": "z.array(z.any())"
+}
+```
+
+#### Colors and UI Properties
+
+```json
+".*[Cc]olor$": {
+  "pattern": true,
+  "validator": "z.string().regex(/^#([0-9A-F]{3}){1,2}$/i).or(z.string().regex(/^rgb\\(\\d{1,3},\\s*\\d{1,3},\\s*\\d{1,3}\\)$/))"
+},
+".*Theme$": {
+  "pattern": true,
+  "validator": "z.string()"
+}
+```
+
+### Real-World Use Cases
+
+#### E-commerce Product Data
+
+For an e-commerce system, pattern-based validators ensure consistent validation of product attributes:
+
+```typescript
+interface Product {
+  productId: string;                // Matches identifier pattern
+  name: string;
+  basePrice: number;                // Matches monetary pattern
+  discountAmount: number;           // Matches monetary pattern
+  stockCount: number;               // Matches count pattern
+  isAvailable: boolean;             // Matches boolean pattern
+  primaryColor: string;             // Matches color pattern
+  productStatus: string;            // Matches status pattern
+  dimensions: {
+    width: number;                  // Matches dimension pattern
+    height: number;                 // Matches dimension pattern
+    depth: number;                  // Matches dimension pattern
+  };
+  createdAt: Date;                  // Matches timestamp pattern
+}
+```
+
+#### Financial Transactions
+
+Financial systems benefit from consistent validation of monetary values and rates:
+
+```typescript
+interface Transaction {
+  transactionId: string;            // Matches identifier pattern
+  amount: number;                   // Matches monetary pattern
+  fee: number;                      // Matches monetary pattern
+  interestRate: number;             // Matches percentage pattern
+  exchangeRate: number;             // Matches rate pattern
+  transactionDate: Date;            // Matches timestamp pattern
+  transactionStatus: string;        // Matches status pattern
+}
+```
+
+#### Analytics Data
+
+Analytics systems use pattern matching to validate metrics and counts:
+
+```typescript
+interface AnalyticsData {
+  visitorCount: number;             // Matches count pattern
+  bounceRate: number;               // Matches percentage pattern
+  conversionRate: number;           // Matches percentage pattern
+  isRealTime: boolean;              // Matches boolean pattern
+  recordedAt: Date;                 // Matches timestamp pattern
+}
+```
 
 ### Best Practices for Pattern Matching
 
@@ -290,7 +442,11 @@ This will match fields named `lat`, `latitude`, or ending with `Latitude` like `
 
 4. **Document Patterns**: Comment your regex patterns to explain what they're matching.
 
-5. **Error Handling**: Invalid regex patterns will be logged as warnings and ignored.
+5. **Use Consistent Naming Conventions**: Adopt consistent naming conventions in your codebase to make patterns more effective.
+
+6. **Provide Fallbacks**: For enums and specific formats, consider using `.or(z.string())` to provide a fallback when strict validation isn't required.
+
+7. **Combine with Type Information**: Consider the expected TypeScript type when designing pattern validators.
 
 ## Example Project
 

@@ -13,7 +13,15 @@ import {
   WebsiteConfig,
   LoginCredentials,
   PasswordReset,
-  GeoPoint
+  GeoPoint,
+  // New types with pattern-based field validators
+  EcommerceProduct,
+  ProductDimensions,
+  UserActivity,
+  Transaction,
+  Theme,
+  AnalyticsData,
+  ShippingOrder
 } from './types';
 
 // Import the automatically generated Zod schemas
@@ -30,7 +38,15 @@ import {
   zWebsiteConfig,
   zLoginCredentials,
   zPasswordReset,
-  zGeoPoint
+  zGeoPoint,
+  // New schemas
+  zEcommerceProduct,
+  zProductDimensions,
+  zUserActivity,
+  zTransaction,
+  zTheme,
+  zAnalyticsData,
+  zShippingOrder
 } from './schemas';
 
 // Example data
@@ -136,6 +152,170 @@ function main() {
   };
   
   validateAndPrint(zServer, server, 'Server');
+  
+  console.log('\n=== Pattern-Based Field Validation Examples ===');
+  console.log('These examples demonstrate how pattern-based field validators work\n');
+  
+  // Demonstration of E-commerce product with various field patterns
+  const validProduct: EcommerceProduct = {
+    productId: 'prod-123',
+    sku: 'SKU-123-456',
+    name: 'Wireless Headphones',
+    description: 'Premium wireless headphones with noise cancellation',
+    basePrice: 99.99,
+    discountAmount: 20,
+    totalPrice: 79.99,
+    taxRate: 8.5,
+    stockCount: 42,
+    dimensions: {
+      width: 8.5,
+      height: 7.2,
+      depth: 3.1,
+      weight: 0.35,
+      sizeCategory: 'medium'
+    },
+    availableColors: ['black', 'white', 'blue'],
+    primaryColor: '#3366FF',
+    tags: ['electronics', 'audio', 'wireless'],
+    categories: ['headphones', 'accessories'],
+    isAvailable: true,
+    hasVariants: true,
+    productStatus: 'active',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+  
+  validateAndPrint(zEcommerceProduct, validProduct, 'E-commerce Product (valid)');
+  
+  // Invalid product demo
+  const invalidProduct = {
+    ...validProduct,
+    basePrice: -10,               // Invalid: negative price
+    taxRate: 120,                 // Invalid: rate > 100
+    stockCount: -5,               // Invalid: negative count
+    primaryColor: 'blue',         // Invalid: not a valid color format
+    dimensions: {
+      ...validProduct.dimensions,
+      width: -1,                  // Invalid: negative dimension
+    },
+    productStatus: 'unknown',     // Valid: string is accepted as fallback for enum
+  };
+  
+  validateAndPrint(zEcommerceProduct, invalidProduct, 'E-commerce Product (invalid)');
+  
+  // User activity with timestamps, counts, and booleans
+  const validActivity: UserActivity = {
+    activityId: 'act-123456',
+    userId: 'user-789',
+    sessionId: 'sess-456',
+    activityType: 'page_view',
+    startTime: new Date('2023-06-01T10:30:00Z'),
+    endTime: new Date('2023-06-01T10:35:00Z'),
+    loginDate: '2023-06-01',      // String date that will be coerced
+    durationSeconds: 300,
+    completionRate: 85.5,
+    clickCount: 12,
+    pageViewCount: 7,
+    isCompleted: true,
+    canResume: false,
+    activityStatus: 'completed'
+  };
+  
+  validateAndPrint(zUserActivity, validActivity, 'User Activity (valid)');
+  
+  // Financial transaction with monetary values and rates
+  const validTransaction: Transaction = {
+    transactionId: 'tx-789012',
+    referenceCode: 'ref-12345',
+    amount: 250.75,
+    fee: 2.99,
+    totalAmount: 253.74,
+    interestRate: 4.5,
+    exchangeRate: 1.23,
+    transactionDate: new Date('2023-05-15'),
+    processedAt: new Date(),
+    shouldNotify: true,
+    transactionStatus: 'completed'
+  };
+  
+  validateAndPrint(zTransaction, validTransaction, 'Financial Transaction (valid)');
+  
+  // UI Theme with color validations
+  const validTheme: Theme = {
+    themeId: 'theme-dark',
+    name: 'Dark Mode',
+    primaryColor: '#121212',
+    secondaryColor: '#333333',
+    backgroundColor: '#000000',
+    textColor: '#FFFFFF',
+    accentColor: '#4285F4',
+    isDefault: false,
+    createdAt: new Date()
+  };
+  
+  validateAndPrint(zTheme, validTheme, 'UI Theme (valid)');
+  
+  // Analytics data with count and rate validations
+  const validAnalytics: AnalyticsData = {
+    metricId: 'metric-123',
+    pageId: 'page-home',
+    visitorCount: 5421,
+    conversionCount: 127,
+    bounceCount: 1834,
+    conversionRate: 2.34,
+    bounceRate: 33.8,
+    engagementRatio: 42.1,
+    recordedAt: new Date(),
+    periodStartDate: '2023-06-01',
+    periodEndDate: '2023-06-30',
+    isRealTime: false,
+    dataStatus: 'completed'
+  };
+  
+  validateAndPrint(zAnalyticsData, validAnalytics, 'Analytics Data (valid)');
+  
+  // Shipping order with status and dimension validations
+  const validOrder: ShippingOrder = {
+    orderId: 'order-123456',
+    trackingCode: 'track-789012',
+    shippingStatus: 'pending',
+    paymentStatus: 'completed',
+    orderStatus: 'processing',
+    shippingCost: 12.99,
+    packageWidth: 30,
+    packageHeight: 20,
+    packageLength: 40,
+    orderDate: new Date('2023-06-15'),
+    shipByDate: new Date('2023-06-18'),
+    deliveryTime: '2023-06-20T14:00:00Z',
+    isExpress: true,
+    hasInsurance: true,
+    items: ['item1', 'item2', 'item3']
+  };
+  
+  validateAndPrint(zShippingOrder, validOrder, 'Shipping Order (valid)');
+  
+  // Invalid dimension values
+  const invalidOrderDimensions = {
+    ...validOrder,
+    packageWidth: -5,      // Invalid: negative dimension
+    packageHeight: 0       // Invalid: zero dimension
+  };
+  
+  validateAndPrint(zShippingOrder, invalidOrderDimensions, 'Shipping Order (invalid dimensions)');
+
+  console.log('\n=== Pattern Matching Summary ===');
+  console.log('The pattern-based field validators automatically applied appropriate validation rules based on field naming patterns:');
+  console.log('- Fields ending with "Id" or "Code" → string validation');
+  console.log('- Fields containing "price", "amount", "cost", etc. → monetary value validation');
+  console.log('- Fields ending with "Count" → positive integer validation');
+  console.log('- Fields matching dimension patterns (width, height, etc.) → positive number validation');
+  console.log('- Fields starting with "is", "has", "can", "should" → boolean validation');
+  console.log('- Fields ending with "Color" → color format validation');
+  console.log('- Fields ending with "Status" → enum validation with string fallback');
+  console.log('- Fields ending with "At", "Date", "Time" → date validation with coercion');
+  console.log('- Fields ending with "Percent", "Rate", "Ratio" → 0-100 range validation');
+  console.log('- Fields matching array patterns (tags, categories, etc.) → array validation');
   
   console.log('\n=== Validation Complete ===');
 }
