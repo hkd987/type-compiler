@@ -483,6 +483,22 @@ const validatedUser = zUserService_getUser_Return.parse(user);
   - Global Type Cache for fast lookups
   - Incremental Compilation to skip unchanged files
   - Parallel Processing using worker threads for multi-core utilization
+- **Special Field Validators**: Apply consistent validation rules to fields with specific names
+- **Pattern-Based Field Matching**: Use regex patterns to apply validators to fields with similar naming patterns
+- **Parallel Processing**: Generate schemas for multiple types simultaneously for improved performance.
+- **TypeScript Plugin Integration**: Seamlessly integrates into the TypeScript compilation process.
+- **Special Field Validators**: Apply custom Zod validation based on field names or patterns.
+
+## Documentation
+
+For detailed guides and examples, check out our documentation:
+
+- [Special Field Validators](docs/special-field-validators.md) - Configure custom Zod validators based on field names
+- [Pattern Matching Visuals](docs/pattern-matching-visuals.md) - Visual diagrams of how pattern matching works
+- [Pattern Matching Implementation](docs/pattern-matching-implementation.md) - Technical details on how pattern matching is implemented
+- [Regex Pattern Guide](docs/regex-pattern-guide.md) - Guide to creating effective regex patterns
+- [Pattern Matching Examples](docs/pattern-matching-examples.md) - Real-world examples of pattern-based validation
+- [Documentation Index](docs/index.md) - Navigate all documentation resources
 
 ## Supported TypeScript Types
 
@@ -501,6 +517,12 @@ The plugin can convert the following TypeScript types to Zod schemas:
 - Class methods and constructors
 - Mapped types (Partial, Pick, Omit, Record, Readonly, etc.)
 - Custom mapped types with property transformations
+
+Regular expressions follow JavaScript syntax. Exact matches are always prioritized over pattern matches.
+
+This feature makes it easy to apply consistent validation across your codebase without manually specifying every field validator.
+
+For a comprehensive visual guide to pattern-based field matching, see our [Pattern Matching Documentation](docs/index.md) which includes detailed diagrams, implementation guides, and real-world examples.
 
 ## Example Output
 
