@@ -65,6 +65,27 @@ try {
     // Copy necessary files to dist directory
     execSync('cp package.json dist/', { stdio: 'inherit' });
     execSync('cp README.md dist/', { stdio: 'inherit' });
+    
+    // Ensure the language service plugin is included
+    if (fs.existsSync(path.join(__dirname, 'dist', 'language-service.js'))) {
+      console.log('   ✅ Language service plugin included in build');
+    } else {
+      console.log('   ⚠️ Language service plugin not found, checking source...');
+      
+      if (fs.existsSync(path.join(__dirname, 'src', 'language-service.ts'))) {
+        console.log('   ✅ Language service source found, compiling...');
+        try {
+          // Compile just the language service file
+          execSync('npx tsc -p tsconfig.plugin.json src/language-service.ts --outDir dist', { stdio: 'inherit' });
+          console.log('   ✅ Language service plugin compiled');
+        } catch (error) {
+          console.error('   ❌ Language service compilation failed', error);
+        }
+      } else {
+        console.log('   ❌ Language service source not found');
+      }
+    }
+    
     console.log('✅ Distribution package created');
   } catch (error) {
     console.error('❌ Distribution package creation failed', error);

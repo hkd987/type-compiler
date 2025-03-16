@@ -495,7 +495,7 @@ const validatedUser = zUserService_getUser_Return.parse(user);
 - **Pattern-Based Field Matching**: Use regex patterns to apply validators to fields with similar naming patterns
 - **Parallel Processing**: Generate schemas for multiple types simultaneously for improved performance.
 - **TypeScript Plugin Integration**: Seamlessly integrates into the TypeScript compilation process.
-- **Special Field Validators**: Apply custom Zod validation based on field names or patterns.
+- **IDE Integration**: Provides hover information, code completion, and visual indicators for fields with special validation
 
 ## Documentation
 
@@ -506,6 +506,7 @@ For detailed guides and examples, check out our documentation:
 - [Pattern Matching Implementation](docs/pattern-matching-implementation.md) - Technical details on how pattern matching is implemented
 - [Regex Pattern Guide](docs/regex-pattern-guide.md) - Guide to creating effective regex patterns
 - [Pattern Matching Examples](docs/pattern-matching-examples.md) - Real-world examples of pattern-based validation
+- [IDE Integration](docs/ide-integration.md) - How to use the IDE hints and autocompletion features
 - [Documentation Index](docs/index.md) - Navigate all documentation resources
 
 ## Supported TypeScript Types
@@ -699,3 +700,43 @@ In this example:
 - Fields ending with `Email` (like `userEmail`, `contactEmail`) use the email validator
 - Fields starting with `id` (like `id`, `idNumber`) use the UUID validator
 - Fields named `latitude` or ending with `Latitude` use the latitude range validator
+
+## IDE Integration
+
+Type Compiler includes a TypeScript Language Service plugin that provides IDE hints and autocompletion for pattern-based field matching. This enhances the developer experience by:
+
+1. **Hover Information** - Hovering over field names shows which validation rules will be applied
+2. **Code Completion** - Suggests field names that have special validators configured
+3. **Visual Indicators** - Fields with special validation are marked with informational diagnostics
+
+### How to Use IDE Integration
+
+The Language Service plugin is automatically activated when you include the type-compiler plugin in your tsconfig.json. No additional configuration is needed.
+
+When writing TypeScript interfaces or types:
+
+```typescript
+interface User {
+  email: string;       // Hover shows: Will be validated as email address
+  contactEmail: string; // Hover shows: Matches pattern ^.*Email$ - will be validated as email address
+  id: string;          // Hover shows: Matches pattern ^id - will be validated as UUID
+  age: number;         // No special validation
+}
+```
+
+### Benefits
+
+- **Discoverability** - Easily discover which field names have special validation
+- **Consistency** - Helps maintain consistent naming patterns with validation rules
+- **Documentation** - Provides inline documentation of validation behavior
+- **Fewer Surprises** - Makes runtime validation behavior visible at development time
+
+### Supported Editors
+
+This feature works in any editor that supports TypeScript Language Service plugins, including:
+
+- Visual Studio Code
+- WebStorm / IntelliJ IDEA
+- Vim/NeoVim (with appropriate plugins)
+- Sublime Text (with TypeScript plugin)
+- Atom (with TypeScript plugin)
