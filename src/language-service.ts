@@ -6,10 +6,16 @@ import { TypeCompilerOptions } from './types';
  */
 function getMatchingValidator(
   fieldName: string,
-  specialFieldValidators: Record<string, string | { pattern: boolean; validator: string }>,
+  specialFieldValidators: Record<string, string | 
+    { pattern: boolean; validator: string; errorMessage?: string } | 
+    { validator: string; errorMessage?: string }
+  >,
   parentTypeName?: string,
-  contextualValidators?: Record<string, Record<string, string> | { pattern: boolean; fields: Record<string, string> }>
-): { validator: string | null; source: string; pattern?: string } {
+  contextualValidators?: Record<string, 
+    Record<string, string | { validator: string; errorMessage?: string }> | 
+    { pattern: boolean; fields: Record<string, string | { validator: string; errorMessage?: string }> }
+  >
+): { validator: string | null; source: string; pattern?: string; errorMessage?: string } {
   // First check contextual validators if parent type name is provided
   if (parentTypeName && contextualValidators) {
     // Check for exact parent type match
@@ -18,91 +24,102 @@ function getMatchingValidator(
       
       // Handle different validator formats
       if (typeof contextValidator === 'object' && !('pattern' in contextValidator)) {
-        // Regular object format with field mappings
-        const fieldMap = contextValidator as Record<string, string>;
-        if (fieldName in fieldMap) {
-          return { 
-            validator: fieldMap[fieldName], 
-            source: `contextual (${parentTypeName})` 
-          };
-        }
-      } else if (typeof contextValidator === 'object' && 'pattern' in contextValidator && 'fields' in contextValidator) {
-        // Object with pattern and fields
-        const patternObj = contextValidator as { pattern: boolean; fields: Record<string, string> };
-        if (fieldName in patternObj.fields) {
-          return { 
-            validator: patternObj.fields[fieldName], 
-            source: `contextual (${parentTypeName})` 
-          };
+        // It's a direct field mapping
+        const fieldsMap = contextValidator as Record<string, string | { validator: string; errorMessage?: string }>;
+        if (fieldName in fieldsMap) {
+          const validator = fieldsMap[fieldName];
+          if (typeof validator === 'string') {
+            return { validator, source: `contextual (${parentTypeName})` };
+          } else {
+            return { 
+              validator: validator.validator, 
+              source: `contextual (${parentTypeName})`,
+              errorMessage: validator.errorMessage
+            };
+          }
         }
       }
     }
     
-    // Check for parent type pattern matches
-    for (const [pattern, validatorData] of Object.entries(contextualValidators)) {
-      // Skip if this is a direct match (already handled) or not a pattern
-      if (pattern === parentTypeName || 
-          typeof validatorData !== 'object' || 
-          !('pattern' in validatorData) || 
-          !validatorData.pattern) {
+    // Check for pattern-based parent type match
+    for (const pattern in contextualValidators) {
+      const contextValidator = contextualValidators[pattern];
+      
+      // Skip non-pattern validators
+      if (typeof contextValidator !== 'object' || !('pattern' in contextValidator) || !contextValidator.pattern) {
         continue;
       }
       
+      // Safely assert the type for the pattern-based validator
+      const patternValidator = contextValidator as { pattern: boolean; fields: Record<string, string | { validator: string; errorMessage?: string }> };
+      
       try {
-        const regex: RegExp = new RegExp(pattern);
-        if (regex.test(parentTypeName)) {
-          const patternObj = validatorData as { pattern: boolean; fields: Record<string, string> };
-          if (fieldName in patternObj.fields) {
-            return { 
-              validator: patternObj.fields[fieldName], 
-              source: `contextual pattern (${pattern})`,
-              pattern
-            };
+        const regex = new RegExp(pattern);
+        if (regex.test(parentTypeName) && patternValidator.fields) {
+          // Check if the field exists in this pattern-based validator
+          if (fieldName in patternValidator.fields) {
+            const validator = patternValidator.fields[fieldName];
+            if (typeof validator === 'string') {
+              return { 
+                validator, 
+                source: `contextual pattern (${pattern})`, 
+                pattern 
+              };
+            } else {
+              return { 
+                validator: validator.validator, 
+                source: `contextual pattern (${pattern})`, 
+                pattern,
+                errorMessage: validator.errorMessage
+              };
+            }
           }
         }
-      } catch (error) {
-        // Invalid regex pattern, skip
+      } catch (e) {
+        // Invalid regex pattern
         console.warn(`Invalid regex pattern in contextualValidators: ${pattern}`);
       }
     }
   }
   
-  // If no contextual validators match, check special field validators
-  // Check for exact field name match
+  // Then check special field validators (direct match)
   if (fieldName in specialFieldValidators) {
     const validator = specialFieldValidators[fieldName];
+    
     if (typeof validator === 'string') {
-      return { 
-        validator, 
-        source: 'field name' 
-      };
-    } else if (validator.validator) {
+      return { validator, source: 'field name' };
+    } else if (validator && typeof validator === 'object' && 'validator' in validator) {
       return { 
         validator: validator.validator, 
-        source: 'field name' 
+        source: 'field name',
+        errorMessage: validator.errorMessage
       };
     }
   }
 
-  // Check for field name pattern matches
-  for (const [pattern, validatorConfig] of Object.entries(specialFieldValidators)) {
-    if (typeof validatorConfig === 'object' && validatorConfig.pattern) {
+  // Finally check special field validators with pattern matching
+  for (const pattern in specialFieldValidators) {
+    const validatorConfig = specialFieldValidators[pattern];
+    
+    if (validatorConfig && typeof validatorConfig === 'object' && 'pattern' in validatorConfig && validatorConfig.pattern) {
       try {
-        const regex: RegExp = new RegExp(pattern);
+        const regex = new RegExp(pattern);
         if (regex.test(fieldName)) {
           return { 
             validator: validatorConfig.validator, 
-            source: `field pattern (${pattern})`,
-            pattern 
+            source: `pattern (${pattern})`,
+            pattern,
+            errorMessage: validatorConfig.errorMessage
           };
         }
-      } catch (error) {
-        // Invalid regex pattern, skip
+      } catch (e) {
+        // Invalid regex pattern
         console.warn(`Invalid regex pattern in specialFieldValidators: ${pattern}`);
       }
     }
   }
-
+  
+  // No match found
   return { validator: null, source: 'none' };
 }
 
@@ -295,8 +312,8 @@ function init(modules: { typescript: typeof ts }) {
               });
             }
           } 
-          // Handle pattern-based validators
-          else if (typeof validatorConfig === 'object' && validatorConfig.pattern) {
+          // Handle pattern-based validators - properly type check
+          else if (typeof validatorConfig === 'object' && 'pattern' in validatorConfig && validatorConfig.pattern) {
             try {
               // Generate example field names based on patterns
               const patternSuggestions = generateFieldSuggestionsFromPattern(

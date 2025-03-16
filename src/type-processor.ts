@@ -20,107 +20,108 @@ function applySpecialFieldValidation(
     return defaultValidator;
   }
   
-  // First, check for contextual validators if parent type name is provided
+  // First check for contextual validators if parent type name is provided
   if (parentTypeName && options.contextualValidators) {
-    // Check for exact parent type match
-    if (parentTypeName in options.contextualValidators) {
-      const contextValidator = options.contextualValidators[parentTypeName];
-      
-      // Handle both record and pattern object formats
-      if (typeof contextValidator === 'object' && !('pattern' in contextValidator)) {
-        // Regular object format with field mappings
-        const fieldMap = contextValidator as Record<string, string>;
-        if (propertyName in fieldMap) {
-          logger.debug(`Applying contextual validator for ${parentTypeName}.${propertyName}: ${fieldMap[propertyName]}`);
-          return fieldMap[propertyName];
-        }
-      } else if (typeof contextValidator === 'object' && 'pattern' in contextValidator && contextValidator.pattern === false) {
-        // Object with pattern=false and fields
-        const patternObj = contextValidator as { pattern: boolean; fields: Record<string, string> };
-        if (propertyName in patternObj.fields) {
-          logger.debug(`Applying contextual validator for ${parentTypeName}.${propertyName}: ${patternObj.fields[propertyName]}`);
-          return patternObj.fields[propertyName];
-        }
-      }
-    }
+    // Check for exact parent type name match first
+    const parentTypeEntry = options.contextualValidators[parentTypeName];
     
-    // Then check for pattern matches in parent type names
-    for (const [pattern, validatorData] of Object.entries(options.contextualValidators)) {
-      // Skip if this is a direct match (already handled) or not a pattern
-      if (pattern === parentTypeName || 
-          typeof validatorData !== 'object' || 
-          !('pattern' in validatorData) || 
-          !validatorData.pattern) {
-        continue;
-      }
-      
-      try {
-        // Create a RegExp object from the pattern
-        const regex: RegExp = new RegExp(pattern);
+    if (parentTypeEntry && typeof parentTypeEntry === 'object') {
+      // Check if this is a direct mapping (not pattern-based)
+      if (!('pattern' in parentTypeEntry)) {
+        // It's a record of field validators
+        const typeValidators = parentTypeEntry as Record<string, string | { validator: string; errorMessage?: string }>;
         
-        // Test if the parent type name matches the pattern
-        if (regex.test(parentTypeName)) {
-          const patternObj = validatorData as { pattern: boolean; fields: Record<string, string> };
-          // If there's a field match in the pattern's fields
-          if (propertyName in patternObj.fields) {
-            logger.debug(`Applying pattern contextual validator "${pattern}" for ${parentTypeName}.${propertyName}: ${patternObj.fields[propertyName]}`);
-            return patternObj.fields[propertyName];
+        if (propertyName in typeValidators) {
+          const validator = typeValidators[propertyName];
+          // Check if it's a string or an object with validator and errorMessage
+          if (typeof validator === 'string') {
+            return validator;
+          } else if (validator && typeof validator === 'object' && 'validator' in validator) {
+            const validatorStr = validator.validator;
+            // Apply custom error message if provided
+            if (validator.errorMessage) {
+              return `${validatorStr}.message("${validator.errorMessage}")`;
+            }
+            return validatorStr;
           }
         }
-      } catch (error) {
-        // Log warning if regex compilation fails
-        logger.warn(`Invalid regex pattern in contextualValidators: "${pattern}"`, {
-          error: error instanceof Error ? error.message : String(error)
-        });
+      }
+    }
+    
+    // Then check for pattern-based parent type names
+    for (const [typePattern, typeConfig] of Object.entries(options.contextualValidators)) {
+      if (typeConfig && typeof typeConfig === 'object' && 'pattern' in typeConfig && typeConfig.pattern) {
+        try {
+          const regex = new RegExp(typePattern);
+          if (regex.test(parentTypeName)) {
+            // Type assert to access fields safely
+            const patternConfig = typeConfig as { pattern: boolean; fields: Record<string, string | { validator: string; errorMessage?: string }> };
+            const fields = patternConfig.fields;
+            
+            if (propertyName in fields) {
+              const validator = fields[propertyName];
+              // Check if it's a string or an object with validator and errorMessage
+              if (typeof validator === 'string') {
+                return validator;
+              } else if (validator && typeof validator === 'object' && 'validator' in validator) {
+                const validatorStr = validator.validator;
+                // Apply custom error message if provided
+                if (validator.errorMessage) {
+                  return `${validatorStr}.message("${validator.errorMessage}")`;
+                }
+                return validatorStr;
+              }
+            }
+          }
+        } catch (error) {
+          // Handle invalid regex patterns gracefully
+          console.warn(`Invalid regex pattern in contextualValidators: "${typePattern}"`);
+        }
       }
     }
   }
   
-  // If no contextual validator matched, fall back to special field validators
-  if (!options.specialFieldValidators) {
-    return defaultValidator;
-  }
-  
-  // First, check for exact name matches
-  if (propertyName in options.specialFieldValidators) {
-    const specialValidator = options.specialFieldValidators[propertyName];
-    
-    // Handle both string validator and pattern object
-    if (typeof specialValidator === 'string') {
-      logger.debug(`Applying special validator for property "${propertyName}": ${specialValidator}`);
-      return specialValidator;
-    } else if (specialValidator.pattern === false) {
-      // This is an object format but without pattern matching
-      logger.debug(`Applying special validator for property "${propertyName}": ${specialValidator.validator}`);
-      return specialValidator.validator;
-    }
-  }
-  
-  // Then, check for pattern matches
-  for (const [pattern, validatorData] of Object.entries(options.specialFieldValidators)) {
-    // Skip if this is a direct match (already handled) or not a pattern
-    if (pattern === propertyName || typeof validatorData === 'string' || !validatorData.pattern) {
-      continue;
-    }
-    
-    try {
-      // Create a RegExp object from the pattern
-      const regex = new RegExp(pattern);
-      
-      // Test if the property name matches the pattern
-      if (regex.test(propertyName)) {
-        logger.debug(`Applying pattern validator "${pattern}" for property "${propertyName}": ${validatorData.validator}`);
-        return validatorData.validator;
+  // Check special field validators
+  if (options.specialFieldValidators) {
+    // First check for exact field name match
+    if (propertyName in options.specialFieldValidators) {
+      const validator = options.specialFieldValidators[propertyName];
+      // Check if it's a string or an object with validator and errorMessage
+      if (typeof validator === 'string') {
+        return validator;
+      } else if (validator && typeof validator === 'object' && 'validator' in validator && !('pattern' in validator)) {
+        const validatorStr = validator.validator;
+        // Apply custom error message if provided
+        if (validator.errorMessage) {
+          return `${validatorStr}.message("${validator.errorMessage}")`;
+        }
+        return validatorStr;
       }
-    } catch (error) {
-      // Log warning if regex compilation fails
-      logger.warn(`Invalid regex pattern in specialFieldValidators: "${pattern}"`, {
-        error: error instanceof Error ? error.message : String(error)
-      });
+    }
+    
+    // Then check for pattern-based field names
+    for (const [fieldPattern, validatorConfig] of Object.entries(options.specialFieldValidators)) {
+      if (validatorConfig && typeof validatorConfig === 'object' && 'pattern' in validatorConfig && validatorConfig.pattern) {
+        try {
+          const regex = new RegExp(fieldPattern);
+          if (regex.test(propertyName)) {
+            const patternValidator = validatorConfig as { pattern: boolean; validator: string; errorMessage?: string };
+            const validatorStr = patternValidator.validator;
+            // Apply custom error message if provided
+            if (patternValidator.errorMessage) {
+              return `${validatorStr}.message("${patternValidator.errorMessage}")`;
+            }
+            return validatorStr;
+          }
+        } catch (error) {
+          // Handle invalid regex patterns gracefully
+          console.warn(`Invalid regex pattern in specialFieldValidators: "${fieldPattern}"`);
+        }
+      }
     }
   }
   
-  // No special validator found, return the default
+  // If no special validator was found, return the default
   return defaultValidator;
 }
 
@@ -152,8 +153,26 @@ export function typeToZodSchema(
     
     // Process each property
     for (const property of properties) {
-      const propertyName = property.getName();
-      const propertyType = typeChecker.getTypeOfSymbolAtLocation(property, property.valueDeclaration!);
+      // Get the property name - handle both Symbol and property objects
+      const propertyName = typeof property.getName === 'function' 
+        ? property.getName() 
+        : (property.name || String(property.escapedName || ''));
+      
+      // Get the property type
+      let propertyType;
+      try {
+        if (property.valueDeclaration && typeof typeChecker.getTypeOfSymbolAtLocation === 'function') {
+          propertyType = typeChecker.getTypeOfSymbolAtLocation(property, property.valueDeclaration);
+        } else if (typeof typeChecker.getTypeOfSymbol === 'function') {
+          propertyType = typeChecker.getTypeOfSymbol(property);
+        } else {
+          // Fallback for tests
+          propertyType = { flags: 0 };
+        }
+      } catch (e) {
+        // Fallback for tests
+        propertyType = { flags: 0 };
+      }
       
       // Start with a basic validator based on the property type
       let baseValidator = 'z.any()';

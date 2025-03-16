@@ -27,6 +27,17 @@ A guide to using context-specific validation rules based on parent type names. T
 - Priority rules for validator selection
 - Real-world examples and use cases
 
+### [Custom Error Messages](/docs/custom-error-messages.md)
+
+A complete guide to configuring and using custom error messages for validation. This guide covers:
+
+- Adding custom error messages to field validators
+- Context-specific error messages
+- Pattern-based error messages
+- Priority order for validation messages
+- Runtime usage with Zod schemas
+- Best practices for writing helpful error messages
+
 ### [Pattern Matching Visuals](/docs/pattern-matching-visuals.md)
 
 A visual guide that explains the pattern matching process with diagrams and flowcharts. This guide includes:
@@ -79,12 +90,16 @@ If you're new to pattern-based field matching, we recommend following this readi
 1. [Special Field Validators](/docs/special-field-validators.md) - Understand the basics
 2. [Pattern Matching Visuals](/docs/pattern-matching-visuals.md) - See how it works
 3. [Regex Pattern Guide](/docs/regex-pattern-guide.md) - Learn the pattern syntax
-4. [Pattern Matching Implementation](/docs/pattern-matching-implementation.md) - Implement in your project
-5. [Pattern Matching Examples](/docs/pattern-matching-examples.md) - See real-world applications
+4. [Custom Error Messages](/docs/custom-error-messages.md) - Improve validation feedback
+5. [Pattern Matching Implementation](/docs/pattern-matching-implementation.md) - Implement in your project
+6. [Pattern Matching Examples](/docs/pattern-matching-examples.md) - See real-world applications
 
 ## Additional Resources
 
-- [Example Project](/examples/special-validators) - A complete example project demonstrating pattern-based field matching
+- [Special Validators Example](/examples/special-validators) - A complete example project demonstrating pattern-based field matching
+- [Contextual Validators Example](/examples/contextual-validators) - An example showing context-specific validation rules
+- [Custom Error Messages Example](/examples/custom-error-messages) - An example demonstrating custom validation error messages
+- [IDE Suggestions Example](/examples/ide-suggestions) - An example showing IDE integration features
 - [Type Compiler README](/README.md) - General information about the type-compiler plugin
 
 ## Contributing

@@ -149,32 +149,58 @@ Configure the plugin in your `tsconfig.json`:
         "strictTypeChecking": true,
         "validateClassMethods": true,
         "specialFieldValidators": {
-          "email": "z.string().email()",
-          "url": "z.string().url()",
-          "phoneNumber": "z.string().regex(/^\\+?[1-9]\\d{1,14}$/)",
+          "email": {
+            "validator": "z.string().email()",
+            "errorMessage": "Please enter a valid email address"
+          },
+          "url": {
+            "validator": "z.string().url()",
+            "errorMessage": "Please enter a valid URL"
+          },
+          "phoneNumber": {
+            "validator": "z.string().regex(/^\\+?[1-9]\\d{1,14}$/)",
+            "errorMessage": "Phone number must be in international format (e.g. +12345678901)"
+          },
           "^.*Email$": {
             "pattern": true,
-            "validator": "z.string().email()"
+            "validator": "z.string().email()",
+            "errorMessage": "Must be a valid email address"
           },
           "^id[A-Z]": {
             "pattern": true, 
-            "validator": "z.string().uuid()"
+            "validator": "z.string().uuid()",
+            "errorMessage": "Must be a valid UUID"
           }
         },
         "contextualValidators": {
           "User": {
-            "email": "z.string().email().endsWith('@company.com')",
-            "role": "z.enum(['admin', 'user', 'guest'])"
+            "email": {
+              "validator": "z.string().email().endsWith('@company.com')",
+              "errorMessage": "Company email must end with @company.com"
+            },
+            "role": {
+              "validator": "z.enum(['admin', 'user', 'guest'])",
+              "errorMessage": "Role must be one of: admin, user, or guest"
+            }
           },
           "Customer": {
             "email": "z.string().email()",
-            "status": "z.enum(['active', 'inactive', 'pending'])"
+            "status": {
+              "validator": "z.enum(['active', 'inactive', 'pending'])",
+              "errorMessage": "Status must be either 'active', 'inactive', or 'pending'"
+            }
           },
           "^.*Product$": {
             "pattern": true,
             "fields": {
-              "price": "z.number().positive().min(0.01)",
-              "inventory": "z.number().int().min(0)"
+              "price": {
+                "validator": "z.number().positive().min(0.01)",
+                "errorMessage": "Price must be greater than $0.01"
+              },
+              "inventory": {
+                "validator": "z.number().int().min(0)",
+                "errorMessage": "Inventory must be a non-negative integer"
+              }
             }
           }
         }
@@ -340,12 +366,101 @@ export const zContainer = <T extends z.ZodTypeAny>(valueSchema: T) =>
 const StringContainer = zContainer(z.string());
 ```
 
-For more examples, see the examples directory in the repository:
-- [Complete Example with Complex Types](examples/parallel-processing.ts)
-- [Generic Types Example](examples/generic-types.ts)
-- [Mapped Types Example](examples/mapped-types.ts)
-- [Special Field Validators Example](examples/special-validators)
-- [Contextual Validators Example](examples/contextual-validators)
+### Custom Error Messages
+
+Type Compiler allows you to define custom error messages for validation rules, providing more specific and helpful feedback to users:
+
+```typescript
+// product.ts
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  stockCount: number;
+}
+
+// With the following configuration in tsconfig.json:
+// "specialFieldValidators": {
+//   "price": {
+//     "validator": "z.number().positive().min(0.01)",
+//     "errorMessage": "Price must be greater than $0.01"
+//   },
+//   "stockCount": {
+//     "validator": "z.number().int().min(0)",
+//     "errorMessage": "Stock count must be a non-negative integer"
+//   }
+// }
+
+// Usage:
+import { zProduct } from './product';
+
+try {
+  const product = zProduct.parse({
+    id: "123",
+    name: "Sample Product",
+    price: 0,  // Invalid price
+    stockCount: -5  // Invalid stock count
+  });
+} catch (error) {
+  console.error(error.errors);
+  // Will output customized error messages:
+  // [
+  //   { 
+  //     "path": ["price"], 
+  //     "message": "Price must be greater than $0.01" 
+  //   },
+  //   { 
+  //     "path": ["stockCount"], 
+  //     "message": "Stock count must be a non-negative integer" 
+  //   }
+  // ]
+}
+```
+
+Benefits of custom error messages:
+
+1. **Improved User Experience**: Provides clear, context-specific guidance when validation fails
+2. **Reduced Support Burden**: Clear error messages lead to fewer support requests
+3. **Consistency**: Ensures consistent messaging across your application
+4. **Domain-Specific Language**: Use terminology that makes sense for your business domain
+5. **Internationalization Support**: Can be used with translation systems for multi-language applications
+
+### Configuring Custom Error Messages
+
+Custom error messages can be configured at multiple levels:
+
+1. **Field-level validation**:
+```json
+"specialFieldValidators": {
+  "email": {
+    "validator": "z.string().email()",
+    "errorMessage": "Please enter a valid email address"
+  }
+}
+```
+
+2. **Pattern-based validation**:
+```json
+"specialFieldValidators": {
+  "^.*Email$": {
+    "pattern": true,
+    "validator": "z.string().email()",
+    "errorMessage": "Must be a valid email address"
+  }
+}
+```
+
+3. **Contextual validation**:
+```json
+"contextualValidators": {
+  "User": {
+    "email": {
+      "validator": "z.string().email().endsWith('@company.com')",
+      "errorMessage": "Company email must end with @company.com"
+    }
+  }
+}
+```
 
 ## Performance
 

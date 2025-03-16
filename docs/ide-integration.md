@@ -171,6 +171,37 @@ interface SensitiveData {
 4. **Pattern Priority**: Order patterns in your config from most specific to least specific
 5. **Team Communication**: Ensure your team understands the naming conventions and validation patterns
 
+## Custom Error Messages in IDE
+
+The TypeScript Language Service plugin also provides enhanced tooltips and information for fields with custom error messages:
+
+### Hover Information for Custom Error Messages
+
+When hovering over a field that has a custom error message defined, the IDE will show:
+- The validation rule that will be applied
+- The custom error message that will be shown if validation fails
+- Where the error message is defined (field-level or contextual)
+
+![Custom Error Message Hover](images/custom-error-hover.png)
+
+### Field Validation Priority Visualization
+
+The IDE tooltips also indicate which validation rule takes precedence when multiple rules apply:
+- Shows if a contextual validator is overriding a general field validator
+- Indicates which pattern is matching for pattern-based validators
+- Displays the custom error message from the highest-priority validator
+
+For example, when hovering over the `email` field in a `User` interface, you might see:
+```
+Field: email
+Validation: Email address ending with '@company.com'
+Error message: "Company email must end with @company.com"
+Source: contextual validator (User)
+Overrides: general email validator
+```
+
+This information helps developers understand which validation rules are being applied and what error messages users will see when validation fails.
+
 ## Future Enhancements
 
 We're planning to enhance the IDE integration with:
@@ -199,18 +230,47 @@ You can customize which patterns generate suggestions by configuring your `tscon
           "email": "z.string().email()",
           "url": "z.string().url()",
           
+          // With custom error messages
+          "price": {
+            "validator": "z.number().positive().min(0.01)",
+            "errorMessage": "Price must be greater than $0.01"
+          },
+          
           // Pattern-based validators - provide richer suggestion experience
           "^.*Email$": {
             "pattern": true,
             "validator": "z.string().email()"
           },
+          
+          // Pattern-based with custom error message
           "^id[A-Z]": {
             "pattern": true, 
-            "validator": "z.string().uuid()"
+            "validator": "z.string().uuid()",
+            "errorMessage": "ID must be a valid UUID"
           },
+          
           "^.*Id$": {
             "pattern": true,
             "validator": "z.string().uuid()"
+          }
+        },
+        
+        // Contextual validators with custom error messages
+        "contextualValidators": {
+          "User": {
+            "email": {
+              "validator": "z.string().email().endsWith('@company.com')",
+              "errorMessage": "Company email must end with @company.com"
+            }
+          },
+          "^.*Form$": {
+            "pattern": true,
+            "fields": {
+              "password": {
+                "validator": "z.string().min(8).regex(/[A-Z]/).regex(/[0-9]/)",
+                "errorMessage": "Password must be at least 8 characters with uppercase and numbers"
+              }
+            }
           }
         }
       }
@@ -222,4 +282,6 @@ You can customize which patterns generate suggestions by configuring your `tscon
 Pattern suggestions are generated based on the type of validator. For example:
 - Email validators will suggest field names related to email communication
 - UUID validators will suggest field names related to identifiers
-- Numeric range validators will suggest field names appropriate for that range (like latitude/longitude) 
+- Numeric range validators will suggest field names appropriate for that range (like latitude/longitude)
+
+When custom error messages are defined, they will be shown in the IDE tooltips to help developers understand what validation failures would look like for users. 

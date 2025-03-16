@@ -1,0 +1,77 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "forceConsistentCasingInFileNames": true,
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "generateZodSchemas": true,
+        "zodSchemaPrefix": "z",
+        "specialFieldValidators": {
+          "id": {
+            "validator": "z.string().uuid()",
+            "errorMessage": "ID must be a valid UUID"
+          },
+          "name": {
+            "validator": "z.string().min(2)",
+            "errorMessage": "Name must be at least 2 characters"
+          },
+          "email": {
+            "validator": "z.string().email()",
+            "errorMessage": "Please enter a valid email address"
+          },
+          "price": {
+            "validator": "z.number().positive().min(0.01)",
+            "errorMessage": "Price must be greater than $0.01"
+          },
+          "inventory": {
+            "validator": "z.number().int().min(0)",
+            "errorMessage": "Inventory must be a non-negative integer"
+          }
+        },
+        "contextualValidators": {
+          "User": {
+            "email": {
+              "validator": "z.string().email().endsWith('@company.com')",
+              "errorMessage": "Company email must end with @company.com"
+            },
+            "role": {
+              "validator": "z.enum(['admin', 'user', 'guest'])",
+              "errorMessage": "Role must be one of: admin, user, or guest"
+            },
+            "age": {
+              "validator": "z.number().int().min(18).max(120)",
+              "errorMessage": "Age must be between 18 and 120"
+            }
+          },
+          "Product": {
+            "price": {
+              "validator": "z.number().positive().min(0.01)",
+              "errorMessage": "Price must be greater than $0.01"
+            }
+          },
+          "^.*Form$": {
+            "pattern": true,
+            "fields": {
+              "email": {
+                "validator": "z.string().email()",
+                "errorMessage": "Please enter a valid email address"
+              },
+              "password": {
+                "validator": "z.string().min(8).regex(/[A-Z]/).regex(/[0-9]/).regex(/[^A-Za-z0-9]/)",
+                "errorMessage": "Password must be at least 8 characters and include uppercase, number, and special character"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "include": ["src/**/*.ts", "*.ts"],
+  "exclude": ["node_modules", "dist"]
+} 

@@ -138,14 +138,22 @@ export interface TypeCompilerOptions {
   /**
    * Custom Zod validators for specific field names
    * 
-   * The key is the field name to match, and the value is the Zod validator expression to use.
-   * For example: { "email": "z.string().email()" } will use z.string().email() for all fields named "email"
+   * The key is the field name to match, and the value is the Zod validator expression to use
+   * or an object with validator and errorMessage properties.
+   * 
+   * Examples:
+   * - { "email": "z.string().email()" }
+   * - { "email": { validator: "z.string().email()", errorMessage: "Please enter a valid email" } }
    * 
    * You can also use regex patterns by specifying an object with pattern and validator properties:
    * { "^.*Email$": { pattern: true, validator: "z.string().email()" } }
-   * This will apply z.string().email() to all fields whose names end with "Email"
+   * or
+   * { "^.*Email$": { pattern: true, validator: "z.string().email()", errorMessage: "Must be a valid email" } }
    */
-  specialFieldValidators?: Record<string, string | { pattern: boolean; validator: string }>;
+  specialFieldValidators?: Record<string, string | 
+    { pattern: boolean; validator: string; errorMessage?: string } | 
+    { validator: string; errorMessage?: string }
+  >;
   
   /**
    * Contextual validators for specific parent type + field name combinations
@@ -157,10 +165,11 @@ export interface TypeCompilerOptions {
    * {
    *   "User": {
    *     "email": "z.string().email().endsWith('@company.com')",
-   *     "role": "z.enum(['admin', 'user', 'guest'])"
-   *   },
-   *   "Product": {
-   *     "price": "z.number().positive().min(0.01)"
+   *     // Or with custom error message:
+   *     "role": { 
+   *       "validator": "z.enum(['admin', 'user', 'guest'])",
+   *       "errorMessage": "Role must be one of: admin, user, or guest"
+   *     }
    *   }
    * }
    * 
@@ -169,7 +178,12 @@ export interface TypeCompilerOptions {
    *   "^.*User$": {
    *     "pattern": true,
    *     "fields": {
-   *       "role": "z.enum(['admin', 'user', 'guest'])"
+   *       "role": "z.enum(['admin', 'user', 'guest'])",
+   *       // Or with custom error message:
+   *       "email": {
+   *         "validator": "z.string().email()",
+   *         "errorMessage": "Please enter a valid email"
+   *       }
    *     }
    *   }
    * }
@@ -177,8 +191,11 @@ export interface TypeCompilerOptions {
    * Contextual validators take precedence over specialFieldValidators when both match.
    */
   contextualValidators?: Record<string, 
-    | Record<string, string> 
-    | { pattern: boolean; fields: Record<string, string> }
+    | Record<string, string | { validator: string; errorMessage?: string }>
+    | { 
+        pattern: boolean; 
+        fields: Record<string, string | { validator: string; errorMessage?: string }>
+      }
   >;
 }
 
