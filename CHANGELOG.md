@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0] - 2024-06-20
+### Added
+- TypeScript Language Service plugin for enhanced IDE integration
+- Contextual validation based on parent type names
+- Pattern-based field validation with regex support
+- IDE features:
+  - Hover tooltips showing validation rules
+  - Code completion suggestions for validated fields
+  - Diagnostics for fields with special validation
+- Comprehensive documentation for IDE integration
+- Examples demonstrating language service features
+- Unit tests for language service functionality
+
 ## [1.3.0] - 2024-06-10
 ### Added
 - Parallel processing feature using worker threads for improved performance

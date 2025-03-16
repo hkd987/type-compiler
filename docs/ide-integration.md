@@ -49,6 +49,15 @@ Fields that will have special validation applied are marked with informational d
 
 ![Diagnostic Example](images/diagnostic-example.png)
 
+### Contextual Validation Support
+
+The plugin fully supports contextual validators:
+
+- Shows context-specific validation rules based on parent type
+- Indicates when contextual validation overrides general field validation
+- Provides detailed tooltips showing which context applies
+- Helps developers understand the priority of validation rules
+
 ## Setup
 
 The Language Service plugin is automatically activated when you include the type-compiler plugin in your `tsconfig.json`. No additional configuration is needed.

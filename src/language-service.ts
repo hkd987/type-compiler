@@ -6,25 +6,95 @@ import { TypeCompilerOptions } from './types';
  */
 function getMatchingValidator(
   fieldName: string,
-  specialFieldValidators: Record<string, string | { pattern: boolean; validator: string }>
-): string | null {
-  // First check for exact matches
-  if (specialFieldValidators[fieldName]) {
+  specialFieldValidators: Record<string, string | { pattern: boolean; validator: string }>,
+  parentTypeName?: string,
+  contextualValidators?: Record<string, Record<string, string> | { pattern: boolean; fields: Record<string, string> }>
+): { validator: string | null; source: string; pattern?: string } {
+  // First check contextual validators if parent type name is provided
+  if (parentTypeName && contextualValidators) {
+    // Check for exact parent type match
+    if (parentTypeName in contextualValidators) {
+      const contextValidator = contextualValidators[parentTypeName];
+      
+      // Handle different validator formats
+      if (typeof contextValidator === 'object' && !('pattern' in contextValidator)) {
+        // Regular object format with field mappings
+        const fieldMap = contextValidator as Record<string, string>;
+        if (fieldName in fieldMap) {
+          return { 
+            validator: fieldMap[fieldName], 
+            source: `contextual (${parentTypeName})` 
+          };
+        }
+      } else if (typeof contextValidator === 'object' && 'pattern' in contextValidator && 'fields' in contextValidator) {
+        // Object with pattern and fields
+        const patternObj = contextValidator as { pattern: boolean; fields: Record<string, string> };
+        if (fieldName in patternObj.fields) {
+          return { 
+            validator: patternObj.fields[fieldName], 
+            source: `contextual (${parentTypeName})` 
+          };
+        }
+      }
+    }
+    
+    // Check for parent type pattern matches
+    for (const [pattern, validatorData] of Object.entries(contextualValidators)) {
+      // Skip if this is a direct match (already handled) or not a pattern
+      if (pattern === parentTypeName || 
+          typeof validatorData !== 'object' || 
+          !('pattern' in validatorData) || 
+          !validatorData.pattern) {
+        continue;
+      }
+      
+      try {
+        const regex: RegExp = new RegExp(pattern);
+        if (regex.test(parentTypeName)) {
+          const patternObj = validatorData as { pattern: boolean; fields: Record<string, string> };
+          if (fieldName in patternObj.fields) {
+            return { 
+              validator: patternObj.fields[fieldName], 
+              source: `contextual pattern (${pattern})`,
+              pattern
+            };
+          }
+        }
+      } catch (error) {
+        // Invalid regex pattern, skip
+        console.warn(`Invalid regex pattern in contextualValidators: ${pattern}`);
+      }
+    }
+  }
+  
+  // If no contextual validators match, check special field validators
+  // Check for exact field name match
+  if (fieldName in specialFieldValidators) {
     const validator = specialFieldValidators[fieldName];
     if (typeof validator === 'string') {
-      return validator;
+      return { 
+        validator, 
+        source: 'field name' 
+      };
     } else if (validator.validator) {
-      return validator.validator;
+      return { 
+        validator: validator.validator, 
+        source: 'field name' 
+      };
     }
   }
 
-  // Then check for pattern matches
+  // Check for field name pattern matches
   for (const [pattern, validatorConfig] of Object.entries(specialFieldValidators)) {
     if (typeof validatorConfig === 'object' && validatorConfig.pattern) {
       try {
-        const regex = new RegExp(pattern);
+        const regex: RegExp = new RegExp(pattern);
         if (regex.test(fieldName)) {
-          return validatorConfig.validator;
+          return { 
+            validator: validatorConfig.validator, 
+            source: `field pattern (${pattern})`,
+            pattern 
+          };
         }
       } catch (error) {
         // Invalid regex pattern, skip
@@ -33,7 +103,7 @@ function getMatchingValidator(
     }
   }
 
-  return null;
+  return { validator: null, source: 'none' };
 }
 
 /**
@@ -97,10 +167,44 @@ function init(modules: { typescript: typeof ts }) {
       // Check if this is a property declaration in an interface or type
       if (isPropertyDeclaration(node) && node.name) {
         const fieldName = node.name.getText();
-        const validator = getMatchingValidator(fieldName, specialFieldValidators);
         
-        if (validator) {
-          const description = getValidatorDescription(validator);
+        // Find parent type name
+        let parentTypeName: string | undefined;
+        let parent: ts.Node = node.parent;
+        
+        while (parent) {
+          if (ts.isInterfaceDeclaration(parent) && parent.name) {
+            parentTypeName = parent.name.getText();
+            break;
+          } else if (ts.isTypeAliasDeclaration(parent) && parent.name) {
+            parentTypeName = parent.name.getText();
+            break;
+          } else if (ts.isTypeLiteralNode(parent)) {
+            parentTypeName = 'AnonymousType';
+            break;
+          }
+          
+          parent = parent.parent;
+        }
+        
+        // Get validator information
+        const validatorInfo = getMatchingValidator(
+          fieldName, 
+          specialFieldValidators, 
+          parentTypeName,
+          config.contextualValidators
+        );
+        
+        if (validatorInfo.validator) {
+          const description = getValidatorDescription(validatorInfo.validator);
+          let validationText = `Will be validated as ${description}`;
+          
+          // Add context info
+          if (validatorInfo.source.startsWith('contextual')) {
+            validationText = `Matches ${validatorInfo.source} - ${validationText}`;
+          } else if (validatorInfo.source.startsWith('field pattern')) {
+            validationText = `Matches ${validatorInfo.source} - ${validationText}`;
+          }
           
           // Add validation info to the hover text
           const newDisplayParts = [...(original.displayParts || [])];
@@ -108,9 +212,9 @@ function init(modules: { typescript: typeof ts }) {
             { text: '\n\n', kind: 'lineBreak' },
             { text: '(type-compiler)', kind: 'label' },
             { text: ' ', kind: 'space' },
-            { text: `Will be validated as ${description}`, kind: 'text' },
+            { text: validationText, kind: 'text' },
             { text: '\n', kind: 'lineBreak' },
-            { text: validator, kind: 'text' }
+            { text: validatorInfo.validator, kind: 'text' }
           );
           
           return {
@@ -388,25 +492,45 @@ function init(modules: { typescript: typeof ts }) {
       
       // Find all interface and type declarations
       typescript.forEachChild(sourceFile, node => {
-        if (
-          node.kind === ts.SyntaxKind.InterfaceDeclaration || 
-          node.kind === ts.SyntaxKind.TypeAliasDeclaration
-        ) {
+        let parentTypeName: string | undefined;
+        
+        if (ts.isInterfaceDeclaration(node) && node.name) {
+          parentTypeName = node.name.getText();
+        } else if (ts.isTypeAliasDeclaration(node) && node.name) {
+          parentTypeName = node.name.getText();
+        } else if (ts.isTypeLiteralNode(node)) {
+          parentTypeName = 'AnonymousType';
+        }
+        
+        if (parentTypeName) {
           // For each property in the interface/type
           typescript.forEachChild(node, property => {
             if (isPropertyDeclaration(property) && property.name) {
               const fieldName = property.name.getText();
-              const validator = getMatchingValidator(fieldName, specialFieldValidators);
+              const validatorInfo = getMatchingValidator(
+                fieldName, 
+                specialFieldValidators,
+                parentTypeName,
+                config.contextualValidators
+              );
               
-              if (validator) {
-                const description = getValidatorDescription(validator);
+              if (validatorInfo.validator) {
+                const description = getValidatorDescription(validatorInfo.validator);
+                let messageText = `Field "${fieldName}" will be validated as ${description}`;
+                
+                // Add context info
+                if (validatorInfo.source.startsWith('contextual')) {
+                  messageText = `${messageText} (from ${validatorInfo.source})`;
+                } else if (validatorInfo.source.startsWith('field pattern')) {
+                  messageText = `${messageText} (matches ${validatorInfo.pattern})`;
+                }
                 
                 // Add an informational diagnostic
                 diagnostics.push({
                   category: typescript.DiagnosticCategory.Message,
                   code: 9000, // Custom code for our plugin
                   source: 'type-compiler',
-                  messageText: `Field "${fieldName}" will be validated as ${description}`,
+                  messageText,
                   file: sourceFile,
                   start: property.name.getStart(),
                   length: property.name.getWidth()

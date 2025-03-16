@@ -12,10 +12,72 @@ import { logger } from './logger';
 function applySpecialFieldValidation(
   propertyName: string, 
   defaultValidator: string,
-  options?: TypeCompilerOptions
+  options?: TypeCompilerOptions,
+  parentTypeName?: string
 ): string {
-  // If no special validators are defined or options are not provided, return the default
-  if (!options?.specialFieldValidators) {
+  // If no options are provided, return the default
+  if (!options) {
+    return defaultValidator;
+  }
+  
+  // First, check for contextual validators if parent type name is provided
+  if (parentTypeName && options.contextualValidators) {
+    // Check for exact parent type match
+    if (parentTypeName in options.contextualValidators) {
+      const contextValidator = options.contextualValidators[parentTypeName];
+      
+      // Handle both record and pattern object formats
+      if (typeof contextValidator === 'object' && !('pattern' in contextValidator)) {
+        // Regular object format with field mappings
+        const fieldMap = contextValidator as Record<string, string>;
+        if (propertyName in fieldMap) {
+          logger.debug(`Applying contextual validator for ${parentTypeName}.${propertyName}: ${fieldMap[propertyName]}`);
+          return fieldMap[propertyName];
+        }
+      } else if (typeof contextValidator === 'object' && 'pattern' in contextValidator && contextValidator.pattern === false) {
+        // Object with pattern=false and fields
+        const patternObj = contextValidator as { pattern: boolean; fields: Record<string, string> };
+        if (propertyName in patternObj.fields) {
+          logger.debug(`Applying contextual validator for ${parentTypeName}.${propertyName}: ${patternObj.fields[propertyName]}`);
+          return patternObj.fields[propertyName];
+        }
+      }
+    }
+    
+    // Then check for pattern matches in parent type names
+    for (const [pattern, validatorData] of Object.entries(options.contextualValidators)) {
+      // Skip if this is a direct match (already handled) or not a pattern
+      if (pattern === parentTypeName || 
+          typeof validatorData !== 'object' || 
+          !('pattern' in validatorData) || 
+          !validatorData.pattern) {
+        continue;
+      }
+      
+      try {
+        // Create a RegExp object from the pattern
+        const regex: RegExp = new RegExp(pattern);
+        
+        // Test if the parent type name matches the pattern
+        if (regex.test(parentTypeName)) {
+          const patternObj = validatorData as { pattern: boolean; fields: Record<string, string> };
+          // If there's a field match in the pattern's fields
+          if (propertyName in patternObj.fields) {
+            logger.debug(`Applying pattern contextual validator "${pattern}" for ${parentTypeName}.${propertyName}: ${patternObj.fields[propertyName]}`);
+            return patternObj.fields[propertyName];
+          }
+        }
+      } catch (error) {
+        // Log warning if regex compilation fails
+        logger.warn(`Invalid regex pattern in contextualValidators: "${pattern}"`, {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+  }
+  
+  // If no contextual validator matched, fall back to special field validators
+  if (!options.specialFieldValidators) {
     return defaultValidator;
   }
   
@@ -82,6 +144,12 @@ export function typeToZodSchema(
     const properties = type.getProperties();
     const propertySchemas: string[] = [];
     
+    // Get the parent type name if available
+    let parentTypeName: string | undefined;
+    if (type.symbol && type.symbol.name) {
+      parentTypeName = type.symbol.name;
+    }
+    
     // Process each property
     for (const property of properties) {
       const propertyName = property.getName();
@@ -94,7 +162,7 @@ export function typeToZodSchema(
       // and convert it to the appropriate Zod schema
       
       // Apply any special field validation
-      const finalValidator = applySpecialFieldValidation(propertyName, baseValidator, options);
+      const finalValidator = applySpecialFieldValidation(propertyName, baseValidator, options, parentTypeName);
       
       // Add to property schemas
       propertySchemas.push(`${propertyName}: ${finalValidator}`);

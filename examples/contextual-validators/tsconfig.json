@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "strict": true,
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "generateZodSchemas": true,
+        "zodSchemaPrefix": "z",
+        "specialFieldValidators": {
+          "email": "z.string().email()",
+          "url": "z.string().url()",
+          "price": "z.number().positive()"
+        },
+        "contextualValidators": {
+          "User": {
+            "email": "z.string().email().endsWith('@company.com')",
+            "role": "z.enum(['admin', 'user', 'guest'])",
+            "status": "z.enum(['active', 'inactive'])"
+          },
+          "Customer": {
+            "email": "z.string().email()",
+            "type": "z.enum(['individual', 'business'])",
+            "status": "z.enum(['active', 'inactive', 'pending', 'suspended'])"
+          },
+          "^.*Product$": {
+            "pattern": true,
+            "fields": {
+              "price": "z.number().positive().min(0.01)",
+              "inventory": "z.number().int().min(0)"
+            }
+          },
+          "^(Admin|Super)User$": {
+            "pattern": true,
+            "fields": {
+              "permissions": "z.array(z.string()).min(1)"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+} 

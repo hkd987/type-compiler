@@ -17,6 +17,16 @@ The foundational guide that explains the concept of special field validators, ho
 - Common validators for different field types
 - Advanced usage and limitations
 
+### [Contextual Validators](/docs/contextual-validators.md)
+
+A guide to using context-specific validation rules based on parent type names. This guide covers:
+
+- Applying different validation to the same field name in different types
+- Pattern-based type matching
+- Combining contextual and special field validators
+- Priority rules for validator selection
+- Real-world examples and use cases
+
 ### [Pattern Matching Visuals](/docs/pattern-matching-visuals.md)
 
 A visual guide that explains the pattern matching process with diagrams and flowcharts. This guide includes:

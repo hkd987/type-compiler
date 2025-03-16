@@ -1,5 +1,7 @@
 # Type Compiler
 
+> **New in version 1.4.0:** Enhanced IDE integration with TypeScript Language Service - hover tooltips, code completion, and more for your validation rules! [Learn more](#ide-integration)
+
 A TypeScript compiler plugin that automatically generates Zod schemas from TypeScript types for runtime validation. The plugin integrates directly with the TypeScript compiler (tsc) to provide runtime type checking through Zod.
 
 ## Installation
@@ -33,6 +35,23 @@ npm install --save-dev type-compiler zod
           "^id[A-Z]": {
             "pattern": true, 
             "validator": "z.string().uuid()"
+          }
+        },
+        "contextualValidators": {
+          "User": {
+            "email": "z.string().email().endsWith('@company.com')",
+            "role": "z.enum(['admin', 'user', 'guest'])"
+          },
+          "Customer": {
+            "email": "z.string().email()",
+            "status": "z.enum(['active', 'inactive', 'pending'])"
+          },
+          "^.*Product$": {
+            "pattern": true,
+            "fields": {
+              "price": "z.number().positive().min(0.01)",
+              "inventory": "z.number().int().min(0)"
+            }
           }
         }
       }
@@ -477,6 +496,8 @@ const validatedUser = zUserService_getUser_Return.parse(user);
 | `parallelProcessing` | boolean | `false` | When true, enables parallel processing of types for improved performance on multi-core systems |
 | `workerCount` | number | CPU cores - 1 | Number of worker threads to use for parallel processing (0 = auto) |
 | `workerBatchSize` | number | `100` | Maximum number of types to process in a single worker batch |
+| `specialFieldValidators` | object | `{}` | Define custom validation rules for fields with specific names or matching patterns |
+| `contextualValidators` | object | `{}` | Type-specific validation rules that define different validations for the same field name in different contexts. Supports both exact type name matches and pattern-based matching |
 
 ## Features
 
@@ -700,6 +721,46 @@ In this example:
 - Fields ending with `Email` (like `userEmail`, `contactEmail`) use the email validator
 - Fields starting with `id` (like `id`, `idNumber`) use the UUID validator
 - Fields named `latitude` or ending with `Latitude` use the latitude range validator
+
+### Contextual Validators
+
+Contextual validators provide even greater flexibility by applying validation rules based on the parent type that contains the field. This allows you to define different validation for fields with the same name depending on where they appear.
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "contextualValidators": {
+          "User": {
+            "email": "z.string().email().endsWith('@company.com')",
+            "role": "z.enum(['admin', 'user', 'guest'])"
+          },
+          "Customer": {
+            "email": "z.string().email()",
+            "status": "z.enum(['active', 'inactive', 'pending'])"
+          },
+          "^.*Product$": {
+            "pattern": true,
+            "fields": {
+              "price": "z.number().positive().min(0.01)",
+              "inventory": "z.number().int().min(0)"
+            }
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+In this example:
+- In the `User` interface, the `email` field must end with "@company.com"
+- In the `Customer` interface, the `email` field can be any valid email
+- In any interface ending with "Product" (like `FeaturedProduct` or `DigitalProduct`), the `price` field must be a positive number and `inventory` must be a non-negative integer
+
+Contextual validators take precedence over special field validators when both would apply. This allows for both domain-specific and general validation rules throughout your codebase.
 
 ## IDE Integration
 

@@ -146,6 +146,40 @@ export interface TypeCompilerOptions {
    * This will apply z.string().email() to all fields whose names end with "Email"
    */
   specialFieldValidators?: Record<string, string | { pattern: boolean; validator: string }>;
+  
+  /**
+   * Contextual validators for specific parent type + field name combinations
+   * 
+   * This allows more specific validation than specialFieldValidators by considering
+   * the parent type that contains the field.
+   * 
+   * The key is the parent type name, and the value is a record of field validators:
+   * {
+   *   "User": {
+   *     "email": "z.string().email().endsWith('@company.com')",
+   *     "role": "z.enum(['admin', 'user', 'guest'])"
+   *   },
+   *   "Product": {
+   *     "price": "z.number().positive().min(0.01)"
+   *   }
+   * }
+   * 
+   * You can also use regex patterns for parent type names:
+   * {
+   *   "^.*User$": {
+   *     "pattern": true,
+   *     "fields": {
+   *       "role": "z.enum(['admin', 'user', 'guest'])"
+   *     }
+   *   }
+   * }
+   * 
+   * Contextual validators take precedence over specialFieldValidators when both match.
+   */
+  contextualValidators?: Record<string, 
+    | Record<string, string> 
+    | { pattern: boolean; fields: Record<string, string> }
+  >;
 }
 
 /**
@@ -172,7 +206,8 @@ export const defaultCompilerOptions: TypeCompilerOptions = {
   debug: false,
   silent: false,
   noColor: false,
-  specialFieldValidators: {}
+  specialFieldValidators: {},
+  contextualValidators: {}
 };
 
 /**
