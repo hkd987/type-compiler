@@ -708,6 +708,7 @@ Type Compiler includes a TypeScript Language Service plugin that provides IDE hi
 1. **Hover Information** - Hovering over field names shows which validation rules will be applied
 2. **Code Completion** - Suggests field names that have special validators configured
 3. **Visual Indicators** - Fields with special validation are marked with informational diagnostics
+4. **Pattern-Based Suggestions** - Intelligently suggests field names based on regex patterns in your configuration
 
 ### How to Use IDE Integration
 
@@ -724,12 +725,15 @@ interface User {
 }
 ```
 
+As you type, the IDE will suggest field names that match your validation patterns, such as `userEmail`, `primaryEmail`, or `userId`, making it easier to discover and use consistent field naming patterns across your codebase.
+
 ### Benefits
 
 - **Discoverability** - Easily discover which field names have special validation
 - **Consistency** - Helps maintain consistent naming patterns with validation rules
 - **Documentation** - Provides inline documentation of validation behavior
 - **Fewer Surprises** - Makes runtime validation behavior visible at development time
+- **Smart Suggestions** - Get context-aware field name suggestions based on validation patterns
 
 ### Supported Editors
 

@@ -167,24 +167,60 @@ function init(modules: { typescript: typeof ts }) {
         // Add suggestions for common field names with special validators
         const completions = [...original.entries];
         
-        // Extract validation patterns (just exact matches for now)
-        Object.keys(specialFieldValidators).forEach(fieldName => {
-          if (typeof fieldName === 'string' && !fieldName.startsWith('^') && !fieldName.includes('(')) {
-            const validator = specialFieldValidators[fieldName];
-            const validatorStr = typeof validator === 'string' ? validator : validator.validator;
-            const description = getValidatorDescription(validatorStr);
+        // Get the current field name prefix being typed
+        const currentPrefix = node.getText() || '';
+        
+        // Extract validation patterns (exact matches and patterns)
+        Object.entries(specialFieldValidators).forEach(([pattern, validatorConfig]) => {
+          // Handle exact matches 
+          if (typeof validatorConfig === 'string' && !pattern.startsWith('^') && !pattern.includes('(')) {
+            const description = getValidatorDescription(validatorConfig);
             
-            completions.push({
-              name: fieldName,
-              kind: typescript.ScriptElementKind.memberVariableElement,
-              kindModifiers: typescript.ScriptElementKindModifier.none,
-              sortText: '0-' + fieldName, // Sort at the top
-              insertText: fieldName,
-              isSnippet: true,
-              labelDetails: {
-                description: `Field with ${description} validation`
-              }
-            });
+            // Only add completion if it matches the current prefix (if any)
+            if (!currentPrefix || pattern.startsWith(currentPrefix)) {
+              completions.push({
+                name: pattern,
+                kind: typescript.ScriptElementKind.memberVariableElement,
+                kindModifiers: typescript.ScriptElementKindModifier.none,
+                sortText: '0-' + pattern, // Sort at the top
+                insertText: pattern,
+                isSnippet: true,
+                labelDetails: {
+                  description: `Field with ${description} validation`
+                }
+              });
+            }
+          } 
+          // Handle pattern-based validators
+          else if (typeof validatorConfig === 'object' && validatorConfig.pattern) {
+            try {
+              // Generate example field names based on patterns
+              const patternSuggestions = generateFieldSuggestionsFromPattern(
+                pattern, 
+                validatorConfig.validator, 
+                currentPrefix
+              );
+              
+              // Add each generated suggestion to completions
+              patternSuggestions.forEach(suggestion => {
+                const description = getValidatorDescription(validatorConfig.validator);
+                
+                completions.push({
+                  name: suggestion.name,
+                  kind: typescript.ScriptElementKind.memberVariableElement,
+                  kindModifiers: typescript.ScriptElementKindModifier.none,
+                  sortText: '1-' + suggestion.name, // Sort after exact matches
+                  insertText: suggestion.name,
+                  isSnippet: true,
+                  labelDetails: {
+                    description: `Matches pattern ${pattern} - ${description}`
+                  }
+                });
+              });
+            } catch (error) {
+              // Invalid regex pattern, skip
+              console.warn(`Invalid regex pattern in specialFieldValidators: ${pattern}`);
+            }
           }
         });
         
@@ -196,6 +232,146 @@ function init(modules: { typescript: typeof ts }) {
       
       return original;
     };
+    
+    /**
+     * Generate field name suggestions from a regex pattern
+     */
+    function generateFieldSuggestionsFromPattern(
+      pattern: string,
+      validator: string,
+      currentPrefix: string = ''
+    ): Array<{ name: string; pattern: string }> {
+      const suggestions: Array<{ name: string; pattern: string }> = [];
+      
+      // Common field name templates based on validation types
+      const validatorType = getValidatorDescription(validator);
+      
+      // Create example field names based on the pattern and validator type
+      if (pattern.startsWith('^') && pattern.endsWith('$')) {
+        // Exact pattern (^something$)
+        const exactName = pattern.slice(1, -1);
+        if (!currentPrefix || exactName.startsWith(currentPrefix)) {
+          suggestions.push({ name: exactName, pattern });
+        }
+      } else if (pattern.startsWith('^')) {
+        // Starts with pattern (^prefix)
+        const prefix = pattern.slice(1);
+        
+        // Generate common field names based on validator type
+        const examples = generateExamplesForValidatorType(prefix, validatorType);
+        examples.forEach(example => {
+          if (!currentPrefix || example.startsWith(currentPrefix)) {
+            suggestions.push({ name: example, pattern });
+          }
+        });
+      } else if (pattern.endsWith('$')) {
+        // Ends with pattern (suffix$)
+        const suffix = pattern.slice(0, -1);
+        
+        // Generate common field names based on validator type
+        const examples = generateExamplesForValidatorType('', validatorType, suffix);
+        examples.forEach(example => {
+          if (!currentPrefix || example.startsWith(currentPrefix)) {
+            suggestions.push({ name: example, pattern });
+          }
+        });
+      } else if (pattern.includes('.*')) {
+        // Contains wildcard pattern (pre.*post)
+        const [prefix, suffix] = pattern.split('.*');
+        
+        // Generate common field names based on validator type
+        const examples = generateExamplesForValidatorType(prefix, validatorType, suffix);
+        examples.forEach(example => {
+          if (!currentPrefix || example.startsWith(currentPrefix)) {
+            suggestions.push({ name: example, pattern });
+          }
+        });
+      }
+      
+      return suggestions;
+    }
+    
+    /**
+     * Generate example field names based on validator type
+     */
+    function generateExamplesForValidatorType(
+      prefix: string = '', 
+      validatorType: string, 
+      suffix: string = ''
+    ): string[] {
+      const examples: string[] = [];
+      
+      switch (validatorType) {
+        case 'email address':
+          examples.push(
+            `${prefix}email${suffix}`,
+            `${prefix}userEmail${suffix}`,
+            `${prefix}contactEmail${suffix}`,
+            `${prefix}primaryEmail${suffix}`
+          );
+          break;
+        
+        case 'URL':
+          examples.push(
+            `${prefix}url${suffix}`,
+            `${prefix}website${suffix}`,
+            `${prefix}profileUrl${suffix}`,
+            `${prefix}homepageUrl${suffix}`
+          );
+          break;
+        
+        case 'UUID':
+          examples.push(
+            `${prefix}id${suffix}`,
+            `${prefix}uuid${suffix}`,
+            `${prefix}userId${suffix}`,
+            `${prefix}recordId${suffix}`
+          );
+          break;
+        
+        case 'date':
+          examples.push(
+            `${prefix}date${suffix}`,
+            `${prefix}birthDate${suffix}`,
+            `${prefix}createdAt${suffix}`,
+            `${prefix}lastModified${suffix}`
+          );
+          break;
+        
+        case 'number within range':
+          examples.push(
+            `${prefix}age${suffix}`,
+            `${prefix}score${suffix}`,
+            `${prefix}rating${suffix}`,
+            `${prefix}percentage${suffix}`
+          );
+          break;
+        
+        case 'matches regex pattern':
+          examples.push(
+            `${prefix}phoneNumber${suffix}`,
+            `${prefix}postalCode${suffix}`,
+            `${prefix}customFormat${suffix}`
+          );
+          break;
+        
+        case 'IP address':
+          examples.push(
+            `${prefix}ip${suffix}`,
+            `${prefix}ipAddress${suffix}`,
+            `${prefix}serverIp${suffix}`
+          );
+          break;
+        
+        default:
+          examples.push(
+            `${prefix}value${suffix}`,
+            `${prefix}customField${suffix}`
+          );
+      }
+      
+      return examples;
+    }
     
     /**
      * Add diagnostics for fields that will have special validation

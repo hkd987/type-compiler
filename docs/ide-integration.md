@@ -21,6 +21,21 @@ When defining fields in interfaces or types, the IDE will suggest field names th
 - Shows common field names from your `specialFieldValidators` configuration
 - Indicates what kind of validation will be applied
 - Prioritizes these suggestions at the top of the completion list
+- **Smart Pattern-Based Suggestions**: Automatically suggests field names based on regex patterns in your configuration, complete with appropriate validation rules
+
+For example, if you have a pattern `^.*Email$` for email validation, the IDE will suggest field names like `userEmail`, `contactEmail`, and `primaryEmail` while you type.
+
+The IDE provides intelligent suggestions based on the validator type:
+- Email validators suggest fields like: `email`, `userEmail`, `contactEmail`, `primaryEmail`
+- URL validators suggest fields like: `url`, `website`, `profileUrl`, `homepageUrl`
+- UUID validators suggest fields like: `id`, `uuid`, `userId`, `recordId`
+- Date validators suggest fields like: `date`, `birthDate`, `createdAt`, `lastModified`
+
+Suggestions adapt intelligently to regex pattern types:
+- For patterns like `^prefix` (starting with), you'll get suggestions starting with that prefix
+- For patterns like `suffix$` (ending with), you'll get suggestions ending with that suffix
+- For patterns like `^prefix.*suffix$`, you'll get suggestions with both prefix and suffix
+- For patterns with alternatives `(pattern1|pattern2)`, you'll get suggestions for both variants
 
 ![Completion Example](images/completion-example.png)
 
@@ -118,6 +133,16 @@ interface Contact {
 }
 ```
 
+### Smart Field Name Suggestions
+
+As you type field names, the IDE suggests names that would match your validation patterns:
+
+- Start typing `user` → Get suggestions like `userId` (if you have a UUID pattern for fields starting with "id")
+- Type `primary` → Get suggestions like `primaryEmail` (if you have an email pattern for fields ending with "Email")
+- Type nothing → See all pattern-based suggestions organized by validation type
+
+The suggestions even account for your current typing context to provide more relevant results.
+
 ### Multiple Patterns
 
 When a field name matches multiple patterns, the first match in the configuration is used:
@@ -148,4 +173,44 @@ We're planning to enhance the IDE integration with:
 
 ## Feedback
 
-We welcome feedback on the IDE integration features! Please file issues on our GitHub repository with suggestions for improvement. 
+We welcome feedback on the IDE integration features! Please file issues on our GitHub repository with suggestions for improvement.
+
+## Configuring Pattern-Based Suggestions
+
+You can customize which patterns generate suggestions by configuring your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "specialFieldValidators": {
+          // Exact matches - simplest form
+          "email": "z.string().email()",
+          "url": "z.string().url()",
+          
+          // Pattern-based validators - provide richer suggestion experience
+          "^.*Email$": {
+            "pattern": true,
+            "validator": "z.string().email()"
+          },
+          "^id[A-Z]": {
+            "pattern": true, 
+            "validator": "z.string().uuid()"
+          },
+          "^.*Id$": {
+            "pattern": true,
+            "validator": "z.string().uuid()"
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+Pattern suggestions are generated based on the type of validator. For example:
+- Email validators will suggest field names related to email communication
+- UUID validators will suggest field names related to identifiers
+- Numeric range validators will suggest field names appropriate for that range (like latitude/longitude) 

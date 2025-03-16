@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "generateZodSchemas": true,
+        "specialFieldValidators": {
+          "email": "z.string().email()",
+          "url": "z.string().url()",
+          "phoneNumber": "z.string().regex(/^\\+?[1-9]\\d{1,14}$/)",
+          "^.*Email$": {
+            "pattern": true,
+            "validator": "z.string().email()"
+          },
+          "^id[A-Z]": {
+            "pattern": true, 
+            "validator": "z.string().uuid()"
+          },
+          "^.*Id$": {
+            "pattern": true,
+            "validator": "z.string().uuid()"
+          },
+          "^.*Url$": {
+            "pattern": true,
+            "validator": "z.string().url()"
+          },
+          "(latitude|Latitude)$": {
+            "pattern": true,
+            "validator": "z.number().min(-90).max(90)"
+          },
+          "(longitude|Longitude)$": {
+            "pattern": true,
+            "validator": "z.number().min(-180).max(180)"
+          }
+        }
+      }
+    ]
+  },
+  "include": ["*.ts"],
+  "exclude": ["node_modules"]
+} 
