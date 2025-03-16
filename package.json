@@ -1,7 +1,7 @@
 {
   "name": "type-compiler",
   "version": "1.0.0",
-  "description": "A TypeScript compiler plugin for enhanced type checking and analysis",
+  "description": "A TypeScript compiler plugin for enhanced runtime type checking and analysis",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -23,7 +23,7 @@
     "zod",
     "runtime-validation"
   ],
-  "author": "",
+  "author": "Lundin Matthews",
   "license": "MIT",
   "peerDependencies": {
     "typescript": ">=4.0.0",
