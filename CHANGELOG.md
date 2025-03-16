@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.1] - 2025-03-16
+### Changed
+- Bug fixes and improvements
+
 ## [1.0.0] - 2024-07-01
 ### Added
 - Custom error messages for validators
