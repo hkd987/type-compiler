@@ -13,6 +13,7 @@ A TypeScript compiler plugin that automatically generates Zod schemas from TypeS
 - [Troubleshooting](#troubleshooting)
 - [Documentation](#documentation)
 - [Development](#development)
+- [Testing & Stability](#testing-stability)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -602,6 +603,104 @@ npm test
 
 # Run linting
 npm run lint
+```
+
+## Testing & Stability
+
+Type Compiler maintains a comprehensive test suite to ensure functionality, compatibility, and stability across different environments and use cases.
+
+### Test Coverage
+
+The project includes several layers of tests:
+
+- **Unit Tests**: Test individual functions and components in isolation
+- **Integration Tests**: Test interactions between different parts of the system
+- **End-to-End Tests**: Validate the entire workflow from TypeScript types to generated schemas
+- **Edge Case Tests**: Cover unusual or complex type scenarios
+
+Key areas covered by the test suite include:
+
+- Basic type conversions (primitives, objects, arrays)
+- Complex TypeScript features (generics, mapped types, conditional types)
+- Performance optimizations (caching, incremental compilation, parallel processing)
+- Special field validators and pattern matching
+- Contextual validators
+- TypeScript Language Service plugin functionality
+
+### Running Tests
+
+To run the complete test suite:
+
+```bash
+npm test
+```
+
+To run specific test categories:
+
+```bash
+# Run only unit tests
+npm run test:unit
+
+# Run only integration tests
+npm run test:integration
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+### Edge Case Testing
+
+The test suite includes specialized tests for challenging edge cases:
+
+- **Circular References**: Types that reference themselves directly or indirectly
+- **Deeply Nested Types**: Complex hierarchies of types that test recursive processing
+- **Complex Generics**: Generic types with multiple type parameters and constraints
+- **Mixed Types**: Combinations of different type features like mapped types with generics
+- **Exotic TypeScript Features**: Things like template literal types, infer keyword usage
+- **Large Scale Types**: Performance testing with very large interfaces or numerous types
+
+### Integration Testing
+
+Integration tests ensure that Type Compiler works correctly with:
+
+- Different versions of TypeScript (from 4.0 to latest)
+- Different versions of Zod
+- Various build tools (webpack, Rollup, etc.)
+- Real-world frameworks (React, Vue, etc.)
+- Monorepos using different package managers
+
+### Contributing to Tests
+
+When contributing new features or bug fixes, please include appropriate tests that:
+
+1. Verify the intended functionality
+2. Guard against regressions
+3. Document the expected behavior
+
+Test files should follow the naming convention `*.test.ts` and be placed in the `src/__tests__` directory, mirroring the structure of the source files they test.
+
+Example of a good test:
+
+```typescript
+import { typeToZodSchema } from '../type-processor';
+
+describe('typeToZodSchema', () => {
+  test('handles complex intersection types correctly', () => {
+    // Setup the complex type
+    const mockType = createMockIntersectionType([
+      createMockObjectType({ name: 'string', age: 'number' }),
+      createMockObjectType({ isActive: 'boolean' })
+    ]);
+    
+    // Execute the function
+    const result = typeToZodSchema(mockType, mockTypeChecker);
+    
+    // Verify the output matches expected Zod schema
+    expect(result).toContain('z.object({ name: z.string(), age: z.number() })');
+    expect(result).toContain('z.object({ isActive: z.boolean() })');
+    expect(result).toContain('.and(');
+  });
+});
 ```
 
 ## Contributing
