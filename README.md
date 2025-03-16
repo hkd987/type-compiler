@@ -720,6 +720,35 @@ npm test
 npm run lint
 ```
 
+## CI/CD Setup
+
+This project uses GitHub Actions for continuous integration and deployment. The workflow automatically runs tests, builds the project, and publishes to npm when changes are merged to the main branch.
+
+### Setting Up CI/CD
+
+1. **Configure NPM Token**: To allow GitHub Actions to publish to npm, you need to create an npm token and add it to your GitHub repository secrets:
+
+   - Create an npm token:
+     - Go to [npmjs.com](https://www.npmjs.com/)
+     - Click on your profile icon and select "Access Tokens"
+     - Click "Generate New Token" and select "Publish"
+     - Copy the generated token
+   
+   - Add the token to GitHub secrets:
+     - Go to your GitHub repository
+     - Navigate to "Settings" > "Secrets and variables" > "Actions"
+     - Click "New repository secret"
+     - Name: `NPM_TOKEN`
+     - Value: paste your npm token
+     - Click "Add secret"
+
+2. **Workflow File**: The CI/CD workflow is defined in `.github/workflows/ci-cd.yml` and includes the following jobs:
+   - **Test**: Runs all unit tests
+   - **Build**: Executes the bootstrap command to build the project
+   - **Publish**: Publishes the package to npm (only runs on the main branch)
+
+3. **Manual Triggering**: You can manually trigger the workflow from the "Actions" tab in your GitHub repository by selecting the workflow and clicking "Run workflow".
+
 ## Testing & Stability
 
 Type Compiler maintains a comprehensive test suite to ensure functionality, compatibility, and stability across different environments and use cases.
