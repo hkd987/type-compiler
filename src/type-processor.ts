@@ -175,7 +175,7 @@ export function typeToZodSchema(
       }
       
       // Start with a basic validator based on the property type
-      let baseValidator = 'z.any()';
+      const baseValidator = 'z.any()';
       
       // In a real implementation, we would analyze the property type here
       // and convert it to the appropriate Zod schema
