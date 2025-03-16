@@ -1,7 +1,5 @@
 # Type Compiler
 
-> **New in version 1.4.0:** Enhanced IDE integration with TypeScript Language Service - hover tooltips, code completion, and more for your validation rules! [Learn more](#ide-integration)
-
 A TypeScript compiler plugin that automatically generates Zod schemas from TypeScript types for runtime validation. The plugin integrates directly with the TypeScript compiler (tsc) to provide runtime type checking through Zod.
 
 ## Installation
