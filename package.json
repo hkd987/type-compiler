@@ -4,6 +4,9 @@
   "description": "A TypeScript compiler plugin for enhanced runtime type checking and analysis",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "url": "https://github.com/hkd987/type-compiler"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.plugin.json && echo 'Built modular version!'",
     "bootstrap": "node bootstrap.js",
