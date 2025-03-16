@@ -2,15 +2,140 @@
 
 A TypeScript compiler plugin that automatically generates Zod schemas from TypeScript types for runtime validation. The plugin integrates directly with the TypeScript compiler (tsc) to provide runtime type checking through Zod.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Getting Started](#getting-started)
+- [Features](#features)
+- [Plugin Options](#plugin-options)
+- [Examples](#examples)
+- [Performance](#performance)
+- [Troubleshooting](#troubleshooting)
+- [Documentation](#documentation)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Installation
 
 ```bash
 npm install --save-dev type-compiler zod
 ```
 
-## Usage
+## Getting Started
 
-1. First, configure your `tsconfig.json` to use the plugin:
+This guide will help you quickly set up Type Compiler and understand its basic functionality.
+
+### 1. Basic Setup
+
+Add the plugin to your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "generateZodSchemas": true
+      }
+    ]
+  }
+}
+```
+
+### 2. Create a Simple Interface
+
+```typescript
+// user.ts
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+```
+
+### 3. Compile Your TypeScript Code
+
+When you compile your code with TypeScript, the plugin automatically generates Zod schemas:
+
+```bash
+npx tsc
+```
+
+### 4. Use the Generated Schema
+
+The plugin adds a Zod schema to your file with a 'z' prefix:
+
+```typescript
+// In user.ts after compilation, you can use:
+import { zUser } from './user';
+
+// Get some data (from an API, user input, etc.)
+const userData = fetchUserData();
+
+// Validate at runtime
+try {
+  const validUser = zUser.parse(userData);
+  console.log("Valid user:", validUser);
+} catch (error) {
+  console.error("Invalid user data:", error);
+}
+```
+
+### 5. Add Field-Specific Validation
+
+For more specific validation requirements, configure special validators:
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "generateZodSchemas": true,
+        "specialFieldValidators": {
+          "email": "z.string().email()",
+          "url": "z.string().url()"
+        }
+      }
+    ]
+  }
+}
+```
+
+Now fields named "email" will automatically use `z.string().email()` validation.
+
+### 6. Configure IDE Support
+
+The plugin includes TypeScript Language Service integration that provides:
+- Hover tooltips showing validation rules
+- Code completion for validated fields
+- Visual indicators for fields with special validation
+
+No additional configuration is needed for IDE support beyond the tsconfig.json setup.
+
+## Features
+
+- **Automatic Zod Schema Generation**: Converts TypeScript interfaces and type aliases to Zod schemas
+- **TypeScript Language Service Integration**: Provides IDE hints, hover information, and code completion
+- **Pattern-Based Field Matching**: Apply validators to fields matching regex patterns
+- **Contextual Validation**: Apply different validation to fields based on parent type
+- **Class Method Validation**: Generate validators for class constructors and methods
+- **Support for Advanced TypeScript Types**:
+  - Generic types
+  - Mapped types (Partial, Pick, Omit, etc.)
+  - Union and intersection types
+  - Literal types and more
+- **Performance Optimizations**:
+  - Global type cache
+  - Incremental compilation
+  - Parallel processing with worker threads
+
+## Configuration
+
+### Basic Configuration
+
+Configure the plugin in your `tsconfig.json`:
 
 ```json
 {
@@ -58,13 +183,17 @@ npm install --save-dev type-compiler zod
 }
 ```
 
-2. If you're using TypeScript CLI, you'll need to specify the plugin via the command line:
+### TypeScript CLI Configuration
+
+If you're using TypeScript CLI, specify the plugin via command line:
 
 ```bash
 tsc --plugin type-compiler
 ```
 
-3. For webpack users, configure your `ts-loader` or `awesome-typescript-loader`:
+### Webpack Configuration
+
+For webpack users:
 
 ```javascript
 // webpack.config.js
@@ -81,10 +210,7 @@ module.exports = {
             plugins: [
               { 
                 transform: 'type-compiler', 
-                generateZodSchemas: true,
-                zodSchemaPrefix: "z",
-                strictTypeChecking: true,
-                validateClassMethods: true
+                generateZodSchemas: true
               }
             ]
           }
@@ -93,386 +219,6 @@ module.exports = {
     ]
   }
 };
-```
-
-## Parallel Processing Examples
-
-### Basic Parallel Processing
-
-For large codebases with many complex types, you can enable parallel processing to improve performance:
-
-```json
-{
-  "compilerOptions": {
-    "plugins": [
-      {
-        "name": "type-compiler",
-        "generateZodSchemas": true,
-        "parallelProcessing": true
-      }
-    ]
-  }
-}
-```
-
-This will automatically use a number of worker threads equal to the number of CPU cores minus one.
-
-### Customizing Worker Configuration
-
-You can customize the parallel processing behavior:
-
-```json
-{
-  "compilerOptions": {
-    "plugins": [
-      {
-        "name": "type-compiler",
-        "generateZodSchemas": true,
-        "parallelProcessing": true,
-        "workerCount": 4,       // Use exactly 4 worker threads
-        "workerBatchSize": 50   // Process 50 types per batch
-      }
-    ]
-  }
-}
-```
-
-### When to Use Parallel Processing
-
-Parallel processing is most beneficial when:
-
-- Your codebase has hundreds or thousands of types
-- You have complex types with deep nesting or many properties
-- You're running on a machine with multiple CPU cores
-- Compilation time is becoming a bottleneck
-
-For smaller projects, the overhead of creating and managing worker threads may outweigh the benefits. We recommend benchmarking with and without parallel processing to determine the optimal configuration for your project.
-
-### Benchmarking and Monitoring
-
-To benchmark the performance impact of parallel processing:
-
-```bash
-# Compile without parallel processing
-time npm run build
-
-# Enable parallel processing in tsconfig.json
-# Then compile again
-time npm run build
-```
-
-You can also monitor the CPU usage during compilation:
-
-```bash
-# On Linux/macOS
-npm run build & top
-
-# On Windows
-npm run build & start Task Manager
-```
-
-For more detailed CPU profiling:
-
-```bash
-# Using Node.js built-in profiler
-node --prof node_modules/.bin/tsc
-
-# Convert the log to readable format
-node --prof-process isolate-*.log > profile.txt
-```
-
-### Examples
-
-We provide multiple examples to help you understand and get the most out of type-compiler:
-
-1. **[Complete Example with Complex Types](examples/parallel-processing.ts)** - Demonstrates how parallel processing works with complex nested domain models (Products, Orders, Customers)
-
-2. **[Benchmark Tool](examples/parallel-benchmark.ts)** - A utility to measure and compare the performance of parallel vs sequential processing for your specific workload
-
-3. **[Monitoring & Debugging](examples/monitoring.ts)** - Tools and techniques for monitoring worker performance and optimizing parallel processing
-
-4. **[Generic Types Example](examples/generic-types.ts)** - Demonstrates how type-compiler handles complex generic types
-
-5. **[Mapped Types Example](examples/mapped-types.ts)** - Shows how type-compiler processes TypeScript's mapped types
-
-To run any example:
-```bash
-# Compile the example
-npx tsc examples/example-name.ts
-
-# Run the compiled JavaScript
-node examples/example-name.js
-```
-
-### Performance Impact Example
-
-For a large codebase with many complex types, you might see performance improvements like:
-
-```
-// Without parallel processing:
-Compilation time: 25.3 seconds
-
-// With parallel processing (8-core machine):
-Compilation time: 8.7 seconds (65% faster)
-```
-
-Actual performance gains will vary based on your codebase, machine, and configuration.
-
-## Example
-
-### Interface and Type Validation
-
-Given a TypeScript interface or type definition:
-
-```typescript
-// user.ts
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  age?: number;
-  roles: string[];
-}
-
-// The plugin will automatically generate and add the following to your file:
-import { z } from 'zod';
-
-// ... your original code ...
-
-export const zUser = z.object({
-  id: z.number(),
-  name: z.string(),
-  email: z.string(),
-  age: z.number().optional(),
-  roles: z.array(z.string())
-});
-```
-
-You can then use the generated schema for runtime validation:
-
-```typescript
-// Using the generated Zod schema
-import { zUser } from './user';
-
-const userData = getDataFromAPI();
-
-// Runtime validation
-const validatedUser = zUser.parse(userData);
-```
-
-### Mapped Types Support
-
-The plugin supports TypeScript's mapped types and utility types, translating them to their Zod equivalents:
-
-```typescript
-// types.ts
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  password: string;
-  createdAt: Date;
-}
-
-// Using TypeScript's utility types
-type PartialUser = Partial<User>;
-type UserBasicInfo = Pick<User, 'id' | 'name' | 'email'>;
-type PublicUser = Omit<User, 'password'>;
-type ReadonlyUser = Readonly<User>;
-
-// Custom mapped types
-type OptionalUser = { [K in keyof User]?: User[K] };
-type NullableUser = { [K in keyof User]: User[K] | null };
-
-// The plugin will generate appropriate Zod schemas
-import { z } from 'zod';
-
-// ... your original code ...
-
-export const zUser = z.object({
-  id: z.number(),
-  name: z.string(),
-  email: z.string(),
-  password: z.string(),
-  createdAt: z.date(),
-});
-
-// For utility types, it uses Zod's built-in transformations
-export const zPartialUser = zUser.partial();
-export const zUserBasicInfo = zUser.pick({
-  'id': true, 
-  'name': true, 
-  'email': true
-});
-export const zPublicUser = zUser.omit({
-  'password': true
-});
-export const zReadonlyUser = zUser; // Runtime validation is the same
-
-// For custom mapped types, it analyzes the structure
-export const zOptionalUser = z.object({
-  id: z.number().optional(),
-  name: z.string().optional(),
-  email: z.string().optional(),
-  password: z.string().optional(),
-  createdAt: z.date().optional(),
-});
-
-export const zNullableUser = z.object({
-  id: z.number().nullable(),
-  name: z.string().nullable(),
-  email: z.string().nullable(),
-  password: z.string().nullable(),
-  createdAt: z.date().nullable(),
-});
-```
-
-You can use these schemas just like regular Zod schemas:
-
-```typescript
-// Import and use the generated schemas
-import { zUserBasicInfo, zPublicUser } from './types';
-
-const userData = getDataFromAPI();
-const validUserInfo = zUserBasicInfo.parse(userData);
-const safeUserData = zPublicUser.parse(userData);
-```
-
-### Generic Type Support
-
-The plugin can handle generic types and create appropriate validators:
-
-```typescript
-// generic.ts
-interface Container<T> {
-  value: T;
-  metadata: {
-    timestamp: number;
-    source: string;
-  };
-}
-
-type Result<T, E = Error> = {
-  data?: T;
-  error?: E;
-  success: boolean;
-};
-
-// The plugin will generate:
-import { z } from 'zod';
-
-// ... your original code ...
-
-// Generic functions that return the appropriate Zod schema
-export const zContainer = () => z.object({
-  value: z.any(), // Will be replaced with the appropriate type when instantiated
-  metadata: z.object({
-    timestamp: z.number(),
-    source: z.string()
-  })
-});
-
-export const zResult = () => z.object({
-  data: z.any().optional(),
-  error: z.any().optional(),
-  success: z.boolean()
-});
-```
-
-You can use these with specific types:
-
-```typescript
-// Using the generic schemas with specific types
-import { z } from 'zod';
-import { zContainer, zResult } from './generic';
-
-// Create a specific type instance
-const StringContainer = zContainer().extend({
-  value: z.string()
-});
-
-// Use it for validation
-const container = StringContainer.parse({
-  value: "Hello world",
-  metadata: {
-    timestamp: Date.now(),
-    source: "user-input"
-  }
-});
-
-// Create a Result with specific error and data types
-const ApiResult = zResult().extend({
-  data: z.object({ id: z.number() }).optional(),
-  error: z.object({ message: z.string() }).optional()
-});
-```
-
-### Class Method Validation
-
-The plugin can also generate validation schemas for class constructors and methods:
-
-```typescript
-// service.ts
-class UserService {
-  constructor(private apiKey: string, private timeout: number = 3000) {}
-  
-  async getUser(id: number): Promise<User> {
-    // Implementation...
-    return user;
-  }
-  
-  updateUser(id: number, userData: Partial<User>): boolean {
-    // Implementation...
-    return true;
-  }
-}
-
-// The plugin will generate the following validators:
-import { z } from 'zod';
-
-// ... your original code ...
-
-// Constructor parameter validation
-export const zUserServiceConstructor = z.tuple([
-  z.string(),
-  z.number().optional()
-]);
-
-// Method parameter validation
-export const zUserService_getUser_Params = z.tuple([
-  z.number()
-]);
-
-// Method return type validation
-export const zUserService_getUser_Return = zUser;
-
-export const zUserService_updateUser_Params = z.tuple([
-  z.number(),
-  zUser.partial()
-]);
-
-export const zUserService_updateUser_Return = z.boolean();
-```
-
-You can use these validators to ensure type safety at runtime:
-
-```typescript
-import { 
-  zUserServiceConstructor,
-  zUserService_getUser_Params,
-  zUserService_getUser_Return
-} from './service';
-
-// Validate constructor arguments
-const [apiKey, timeout] = zUserServiceConstructor.parse(['my-api-key', 5000]);
-const service = new UserService(apiKey, timeout);
-
-// Validate method parameters
-const [userId] = zUserService_getUser_Params.parse([123]);
-const user = await service.getUser(userId);
-
-// Validate method return value
-const validatedUser = zUserService_getUser_Return.parse(user);
 ```
 
 ## Plugin Options
@@ -497,34 +243,330 @@ const validatedUser = zUserService_getUser_Return.parse(user);
 | `specialFieldValidators` | object | `{}` | Define custom validation rules for fields with specific names or matching patterns |
 | `contextualValidators` | object | `{}` | Type-specific validation rules that define different validations for the same field name in different contexts. Supports both exact type name matches and pattern-based matching |
 
-## Features
+## Examples
 
-- **Automatic Zod Schema Generation**: Converts TypeScript interfaces and type aliases to Zod schemas
-- **Class Method Validation**: Generates validators for class constructors and methods
-- **Generic Type Support**: Handles generic types and provides ways to create specific instances
-- **Mapped Type Support**: Converts TypeScript mapped and utility types to Zod equivalents
-- **Type Preservation**: Maintains the exact type structure in the generated schemas
-- **Enhanced Type Checking**: Optional strict checking for potentially unsafe types during compilation
-- **Integration with TypeScript's Native Compiler**: Works directly within the compilation pipeline
-- **Performance Optimizations**: 
-  - Global Type Cache for fast lookups
-  - Incremental Compilation to skip unchanged files
-  - Parallel Processing using worker threads for multi-core utilization
-- **Special Field Validators**: Apply consistent validation rules to fields with specific names
-- **Pattern-Based Field Matching**: Use regex patterns to apply validators to fields with similar naming patterns
-- **Parallel Processing**: Generate schemas for multiple types simultaneously for improved performance.
-- **TypeScript Plugin Integration**: Seamlessly integrates into the TypeScript compilation process.
-- **IDE Integration**: Provides hover information, code completion, and visual indicators for fields with special validation
+### Interface and Type Validation
+
+```typescript
+// user.ts
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  age?: number;
+  roles: string[];
+}
+
+// Generated schema (added automatically by the plugin):
+import { z } from 'zod';
+
+export const zUser = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string().email(), // Special validator applied
+  age: z.number().optional(),
+  roles: z.array(z.string())
+});
+```
+
+### Contextual Validation Example
+
+```typescript
+// types.ts
+interface User {
+  email: string;  // Will use z.string().email().endsWith('@company.com')
+  role: string;   // Will use z.enum(['admin', 'user', 'guest'])
+}
+
+interface Customer {
+  email: string;  // Will use z.string().email()
+  status: string; // Will use z.enum(['active', 'inactive', 'pending'])
+}
+
+// Generated schemas (added automatically):
+export const zUser = z.object({
+  email: z.string().email().endsWith('@company.com'),
+  role: z.enum(['admin', 'user', 'guest'])
+});
+
+export const zCustomer = z.object({
+  email: z.string().email(),
+  status: z.enum(['active', 'inactive', 'pending'])
+});
+```
+
+### Mapped Types Example
+
+```typescript
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+// Using TypeScript's utility types
+type PartialUser = Partial<User>;
+type UserBasicInfo = Pick<User, 'id' | 'name'>;
+
+// The plugin generates:
+export const zPartialUser = zUser.partial();
+export const zUserBasicInfo = zUser.pick({
+  'id': true, 
+  'name': true
+});
+```
+
+### Generic Types Example
+
+```typescript
+interface Container<T> {
+  value: T;
+  metadata: {
+    timestamp: number;
+  };
+}
+
+// The plugin generates:
+export const zContainer = <T extends z.ZodTypeAny>(valueSchema: T) => 
+  z.object({
+    value: valueSchema,
+    metadata: z.object({
+      timestamp: z.number()
+    })
+  });
+
+// Usage:
+const StringContainer = zContainer(z.string());
+```
+
+For more examples, see the examples directory in the repository:
+- [Complete Example with Complex Types](examples/parallel-processing.ts)
+- [Generic Types Example](examples/generic-types.ts)
+- [Mapped Types Example](examples/mapped-types.ts)
+- [Special Field Validators Example](examples/special-validators)
+- [Contextual Validators Example](examples/contextual-validators)
+
+## Performance
+
+Type Compiler includes several optimizations to improve performance, especially for large codebases.
+
+### Performance Benchmarks
+
+Here are typical performance improvements you can expect:
+
+| Project Size | Basic Compilation | With Global Cache | With Incremental | With Parallel (8 cores) |
+|--------------|------------------|------------------|------------------|------------------------|
+| Small (<100 types) | 1.0s | 0.9s (10% faster) | 0.5s (50% faster) | 0.8s (20% faster) |
+| Medium (100-500 types) | 5.0s | 4.0s (20% faster) | 2.0s (60% faster) | 2.5s (50% faster) |
+| Large (500-1000 types) | 15.0s | 11.0s (27% faster) | 5.0s (67% faster) | 4.5s (70% faster) |
+| Very Large (1000+ types) | 45.0s | 32.0s (29% faster) | 15.0s (67% faster) | 12.0s (73% faster) |
+
+_Note: Actual performance will vary based on type complexity, hardware, and specific project characteristics._
+
+### Performance Optimization Features
+
+#### Global Type Cache
+
+Stores computed Zod schemas in memory to avoid redundant computation:
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "useGlobalCache": true,
+        "maxCacheSize": 10000
+      }
+    ]
+  }
+}
+```
+
+**When to use**: Enable for all projects; especially beneficial for projects with many common or reused types.
+
+#### Incremental Compilation
+
+Only processes files that have changed since the last compilation:
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "incrementalCompilation": true,
+        "incrementalCachePath": "./node_modules/.cache/type-compiler"
+      }
+    ]
+  }
+}
+```
+
+**When to use**: Enable for all projects during development; provides the most benefit for projects with many files where only a few change between compilations.
+
+#### Parallel Processing
+
+Utilizes worker threads to distribute processing across multiple CPU cores:
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "type-compiler",
+        "parallelProcessing": true,
+        "workerCount": 4
+      }
+    ]
+  }
+}
+```
+
+**When to use**: 
+- Enable for medium to large projects (100+ types)
+- Most effective on machines with 4+ CPU cores
+- Consider disabling for small projects where the overhead may exceed the benefits
+
+### Optimization Recommendations
+
+1. **Start Simple**: Begin with just `useGlobalCache: true` for all projects
+2. **Iterative Improvement**: Add `incrementalCompilation: true` if you find compilation times still slow
+3. **Complex Projects**: Add `parallelProcessing: true` for large projects or complex type hierarchies
+4. **Fine-tuning**: Adjust `workerCount` based on your specific hardware (general rule: CPU cores - 1)
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### "Cannot find module 'zod'"
+
+**Problem**: The compiler complains about missing the Zod module.
+
+**Solution**: Ensure Zod is installed:
+```bash
+npm install zod
+```
+
+#### "The specified path does not exist: ... node_modules/type-compiler"
+
+**Problem**: TypeScript can't find the plugin.
+
+**Solution**: Verify your installation and make sure your path is correct in tsconfig.json:
+```bash
+npm install --save-dev type-compiler
+```
+
+#### Duplicate identifiers for generated schemas
+
+**Problem**: You get errors about duplicate identifiers for your Zod schemas.
+
+**Solution**: Make sure you're not manually defining schemas with the same names. If needed, customize the prefix:
+```json
+{
+  "plugins": [
+    {
+      "name": "type-compiler",
+      "zodSchemaPrefix": "customPrefix"
+    }
+  ]
+}
+```
+
+#### Performance is slow with parallel processing
+
+**Problem**: Enabling parallel processing doesn't improve performance or makes it worse.
+
+**Solution**: Parallel processing has overhead. For small projects, disable it or adjust settings:
+```json
+{
+  "plugins": [
+    {
+      "name": "type-compiler",
+      "parallelProcessing": true,
+      "workerCount": 2, // Try a smaller number
+      "workerBatchSize": 200 // Try a larger batch size to reduce overhead
+    }
+  ]
+}
+```
+
+#### Invalid regex patterns
+
+**Problem**: Your pattern-based field validators aren't working as expected.
+
+**Solution**: Validate your regex patterns and check for proper escaping in JSON:
+```json
+"^id\\d+$": {
+  "pattern": true,
+  "validator": "z.string().uuid()"
+}
+```
+
+#### Type errors in generated schemas
+
+**Problem**: The generated schemas have TypeScript errors.
+
+**Solution**: Check for circular type references or complex nested types. You can exclude problematic types:
+```json
+{
+  "plugins": [
+    {
+      "name": "type-compiler",
+      "excludedTypes": ["ProblemType"]
+    }
+  ]
+}
+```
+
+#### IDE features not working
+
+**Problem**: Hover tooltips or code completion for validation rules aren't showing.
+
+**Solution**: 
+1. Make sure your IDE is using the workspace version of TypeScript
+2. Restart your TypeScript server
+3. Verify your tsconfig.json has the plugin correctly configured
+
+```bash
+# In VS Code, you can restart the TS server with:
+# Press Ctrl+Shift+P, then type "TypeScript: Restart TS Server"
+```
+
+### Debugging Tips
+
+For more advanced debugging:
+
+1. **Enable verbose logging**:
+```json
+{
+  "plugins": [
+    {
+      "name": "type-compiler",
+      "verbose": true
+    }
+  ]
+}
+```
+
+2. **Check compiler output**:
+```bash
+npx tsc --listEmittedFiles
+```
+
+3. **Inspect generated code**:
+Look at the compiled JavaScript files to see if the schemas are being generated correctly.
+
+4. **Isolate problematic types**:
+Create a minimal reproduction case with just the types causing issues.
 
 ## Documentation
 
 For detailed guides and examples, check out our documentation:
 
 - [Special Field Validators](docs/special-field-validators.md) - Configure custom Zod validators based on field names
+- [Contextual Validators](docs/contextual-validators.md) - Type-specific validation rules
 - [Pattern Matching Visuals](docs/pattern-matching-visuals.md) - Visual diagrams of how pattern matching works
-- [Pattern Matching Implementation](docs/pattern-matching-implementation.md) - Technical details on how pattern matching is implemented
-- [Regex Pattern Guide](docs/regex-pattern-guide.md) - Guide to creating effective regex patterns
-- [Pattern Matching Examples](docs/pattern-matching-examples.md) - Real-world examples of pattern-based validation
 - [IDE Integration](docs/ide-integration.md) - How to use the IDE hints and autocompletion features
 - [Documentation Index](docs/index.md) - Navigate all documentation resources
 
@@ -545,20 +587,6 @@ The plugin can convert the following TypeScript types to Zod schemas:
 - Class methods and constructors
 - Mapped types (Partial, Pick, Omit, Record, Readonly, etc.)
 - Custom mapped types with property transformations
-
-Regular expressions follow JavaScript syntax. Exact matches are always prioritized over pattern matches.
-
-This feature makes it easy to apply consistent validation across your codebase without manually specifying every field validator.
-
-For a comprehensive visual guide to pattern-based field matching, see our [Pattern Matching Documentation](docs/index.md) which includes detailed diagrams, implementation guides, and real-world examples.
-
-## Example Output
-
-When the plugin detects potential type issues:
-
-```
-[type-compiler] Found 'any' type at src/components/User.ts:15:23 - variable: any
-```
 
 ## Development
 
@@ -583,223 +611,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 MIT 
-
-## Performance Optimizations
-
-Type Compiler includes several optimizations to improve performance, especially for large codebases:
-
-### Global Type Cache
-
-The global type cache stores computed Zod schemas in memory, allowing them to be reused across different files. This prevents redundant computation when the same types are referenced in multiple files.
-
-```json
-{
-  "compilerOptions": {
-    "plugins": [
-      {
-        "name": "type-compiler",
-        "useGlobalCache": true,
-        "maxCacheSize": 10000
-      }
-    ]
-  }
-}
-```
-
-### Incremental Compilation
-
-With incremental compilation enabled, Type Compiler only processes files that have changed since the last compilation. This can significantly speed up subsequent builds, especially in large codebases.
-
-```json
-{
-  "compilerOptions": {
-    "plugins": [
-      {
-        "name": "type-compiler",
-        "incrementalCompilation": true,
-        "incrementalCachePath": "./node_modules/.cache/type-compiler"
-      }
-    ]
-  }
-}
-```
-
-### Parallel Processing
-
-The parallel processing feature utilizes worker threads to distribute type processing across multiple CPU cores. This can significantly improve performance on multi-core systems, especially for codebases with many complex types.
-
-```json
-{
-  "compilerOptions": {
-    "plugins": [
-      {
-        "name": "type-compiler",
-        "parallelProcessing": true,
-        "workerCount": 4, // use 4 worker threads (0 = auto-detect)
-        "workerBatchSize": 100 // process up to 100 types per worker batch
-      }
-    ]
-  }
-}
-```
-
-When parallel processing is enabled:
-
-1. The plugin creates a pool of worker threads based on the `workerCount` option
-2. Types are batched and distributed across the worker threads for processing
-3. Results are collected and integrated back into the main thread
-4. Workers are automatically cleaned up when compilation completes
-
-This approach is particularly effective when:
-- Your codebase has many complex types
-- You're running on a system with multiple CPU cores
-- You have large interfaces or deeply nested types
-
-**Note:** For small projects, the overhead of creating worker threads may outweigh the benefits. It's recommended to benchmark with and without parallel processing to determine the optimal configuration for your specific use case. 
-
-### Special Field Validators
-
-The Type Compiler allows you to define custom Zod validators for specific field names, ensuring consistent validation rules across your codebase.
-
-You can configure special field validators in your `tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "plugins": [
-      {
-        "name": "type-compiler",
-        "specialFieldValidators": {
-          "email": "z.string().email()",
-          "birthDate": "z.date()",
-          "url": "z.string().url()",
-          "phoneNumber": "z.string().regex(/^\\+?[0-9]{10,15}$/)"
-        }
-      }
-    ]
-  }
-}
-```
-
-When generating Zod schemas, these special validators will be applied to fields with matching names, regardless of which interface or type they belong to.
-
-#### Pattern-Based Field Matching
-
-You can also use regex patterns to match field names, allowing for more flexible validation rules. To use pattern matching, specify an object with `pattern: true` and your validator:
-
-```json
-{
-  "compilerOptions": {
-    "plugins": [
-      {
-        "name": "type-compiler",
-        "specialFieldValidators": {
-          "email": "z.string().email()",
-          "^.*Email$": {
-            "pattern": true,
-            "validator": "z.string().email()"
-          },
-          "^id": {
-            "pattern": true,
-            "validator": "z.string().uuid()"
-          },
-          "(^latitude$|Latitude$)": {
-            "pattern": true,
-            "validator": "z.number().min(-90).max(90)"
-          }
-        }
-      }
-    ]
-  }
-}
-```
-
-In this example:
-- Fields named exactly `email` use the email validator
-- Fields ending with `Email` (like `userEmail`, `contactEmail`) use the email validator
-- Fields starting with `id` (like `id`, `idNumber`) use the UUID validator
-- Fields named `latitude` or ending with `Latitude` use the latitude range validator
-
-### Contextual Validators
-
-Contextual validators provide even greater flexibility by applying validation rules based on the parent type that contains the field. This allows you to define different validation for fields with the same name depending on where they appear.
-
-```json
-{
-  "compilerOptions": {
-    "plugins": [
-      {
-        "name": "type-compiler",
-        "contextualValidators": {
-          "User": {
-            "email": "z.string().email().endsWith('@company.com')",
-            "role": "z.enum(['admin', 'user', 'guest'])"
-          },
-          "Customer": {
-            "email": "z.string().email()",
-            "status": "z.enum(['active', 'inactive', 'pending'])"
-          },
-          "^.*Product$": {
-            "pattern": true,
-            "fields": {
-              "price": "z.number().positive().min(0.01)",
-              "inventory": "z.number().int().min(0)"
-            }
-          }
-        }
-      }
-    ]
-  }
-}
-```
-
-In this example:
-- In the `User` interface, the `email` field must end with "@company.com"
-- In the `Customer` interface, the `email` field can be any valid email
-- In any interface ending with "Product" (like `FeaturedProduct` or `DigitalProduct`), the `price` field must be a positive number and `inventory` must be a non-negative integer
-
-Contextual validators take precedence over special field validators when both would apply. This allows for both domain-specific and general validation rules throughout your codebase.
-
-## IDE Integration
-
-Type Compiler includes a TypeScript Language Service plugin that provides IDE hints and autocompletion for pattern-based field matching. This enhances the developer experience by:
-
-1. **Hover Information** - Hovering over field names shows which validation rules will be applied
-2. **Code Completion** - Suggests field names that have special validators configured
-3. **Visual Indicators** - Fields with special validation are marked with informational diagnostics
-4. **Pattern-Based Suggestions** - Intelligently suggests field names based on regex patterns in your configuration
-
-### How to Use IDE Integration
-
-The Language Service plugin is automatically activated when you include the type-compiler plugin in your tsconfig.json. No additional configuration is needed.
-
-When writing TypeScript interfaces or types:
-
-```typescript
-interface User {
-  email: string;       // Hover shows: Will be validated as email address
-  contactEmail: string; // Hover shows: Matches pattern ^.*Email$ - will be validated as email address
-  id: string;          // Hover shows: Matches pattern ^id - will be validated as UUID
-  age: number;         // No special validation
-}
-```
-
-As you type, the IDE will suggest field names that match your validation patterns, such as `userEmail`, `primaryEmail`, or `userId`, making it easier to discover and use consistent field naming patterns across your codebase.
-
-### Benefits
-
-- **Discoverability** - Easily discover which field names have special validation
-- **Consistency** - Helps maintain consistent naming patterns with validation rules
-- **Documentation** - Provides inline documentation of validation behavior
-- **Fewer Surprises** - Makes runtime validation behavior visible at development time
-- **Smart Suggestions** - Get context-aware field name suggestions based on validation patterns
-
-### Supported Editors
-
-This feature works in any editor that supports TypeScript Language Service plugins, including:
-
-- Visual Studio Code
-- WebStorm / IntelliJ IDEA
-- Vim/NeoVim (with appropriate plugins)
-- Sublime Text (with TypeScript plugin)
-- Atom (with TypeScript plugin)
