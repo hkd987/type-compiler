@@ -25,7 +25,15 @@ npm install --save-dev type-compiler zod
         "specialFieldValidators": {
           "email": "z.string().email()",
           "url": "z.string().url()",
-          "phoneNumber": "z.string().regex(/^\\+?[1-9]\\d{1,14}$/)"
+          "phoneNumber": "z.string().regex(/^\\+?[1-9]\\d{1,14}$/)",
+          "^.*Email$": {
+            "pattern": true,
+            "validator": "z.string().email()"
+          },
+          "^id[A-Z]": {
+            "pattern": true, 
+            "validator": "z.string().uuid()"
+          }
         }
       }
     ]
@@ -691,7 +699,3 @@ In this example:
 - Fields ending with `Email` (like `userEmail`, `contactEmail`) use the email validator
 - Fields starting with `id` (like `id`, `idNumber`) use the UUID validator
 - Fields named `latitude` or ending with `Latitude` use the latitude range validator
-
-Regular expressions follow JavaScript syntax. Exact matches are always prioritized over pattern matches.
-
-This feature makes it easy to apply consistent validation across your codebase without manually specifying every field validator. 
